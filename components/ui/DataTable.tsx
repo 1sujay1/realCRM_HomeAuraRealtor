@@ -64,7 +64,7 @@ export default function DataTable({ columns, data, selectedIds, onSelectionChang
                                 {columns.map((col: any) => (
                                     <th key={col.key} className={cn("p-4 whitespace-nowrap", col.className)}>{col.header}</th>
                                 ))}
-                                <th className="p-4 text-right w-32 sticky right-0 bg-slate-50 z-10">Actions</th>
+                                <th className="p-4 text-right w-32 bg-slate-50 z-5">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -78,7 +78,7 @@ export default function DataTable({ columns, data, selectedIds, onSelectionChang
                                     {columns.map((col: any) => (
                                         <td key={col.key} className="p-4 text-sm text-slate-600">{col.render ? col.render(row) : row[col.key]}</td>
                                     ))}
-                                    <td className="p-4 text-right w-32 sticky right-0 bg-white z-10 group-hover:bg-slate-50" onClick={e => e.stopPropagation()}>{actionBuilder?.(row)}</td>
+                                    <td className="p-4 text-right w-32 bg-white z-5 group-hover:bg-slate-50" onClick={e => e.stopPropagation()}>{actionBuilder?.(row)}</td>
                                 </tr>
                             ))}
                             {data.length === 0 && !isLoading && <tr><td colSpan={columns.length + 2} className="p-12 text-center text-slate-500">No records found</td></tr>}

@@ -1,5 +1,5 @@
 'use client';
-import { LayoutDashboard, Users, User, LogOut, Building, DollarSign, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, Users, User, LogOut, Building, DollarSign, Lock, ChevronLeft, ChevronRight, MapPin, Home } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -36,6 +36,8 @@ export default function Sidebar({ user, isMobileOpen, setIsMobileOpen, isDesktop
           {!isDesktopCollapsed && <p className="px-4 text-xs font-bold text-slate-400 uppercase mb-2 tracking-wider">Main</p>}
           <NavItem href="/dashboard" icon={LayoutDashboard} label="Dashboard" />
           <NavItem href="/leads" icon={Users} label="Leads" />
+          <NavItem href="/site-visits" icon={MapPin} label="Site Visits" />
+          <NavItem href="/projects" icon={Home} label="Projects" /> {/* Added Projects link */}
           {(user?.role === 'admin' || user?.permissions?.canViewExpenses) && <NavItem href="/expenses" icon={DollarSign} label="Expenses" />}
           {user?.role === 'admin' && (<div className={cn(!isDesktopCollapsed && "pt-6 mt-2")}>{!isDesktopCollapsed && <p className="px-4 text-xs font-bold text-slate-400 uppercase mb-2 tracking-wider">Admin</p>}<NavItem href="/users" icon={Lock} label="User Management" /></div>)}
           <div className={cn(!isDesktopCollapsed && "pt-6 mt-2")}><NavItem href="/profile" icon={User} label="My Profile" /></div>

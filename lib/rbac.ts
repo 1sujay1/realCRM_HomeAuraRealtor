@@ -1,6 +1,6 @@
 
 export type Role = 'admin' | 'agent';
-export type Module = 'Leads' | 'Expenses' | 'Users';
+export type Module = 'Leads' | 'Expenses' | 'Users' | 'Projects';
 export type Action = 'create' | 'read' | 'update' | 'delete';
 
 export const RBAC_CONFIG = {
@@ -13,6 +13,10 @@ export const RBAC_CONFIG = {
     agent: { create: false, read: false, update: false, delete: false }
   },
   Users: {
+    admin: { create: true, read: true, update: true, delete: true },
+    agent: { create: false, read: false, update: false, delete: false }
+  },
+  Projects: {
     admin: { create: true, read: true, update: true, delete: true },
     agent: { create: false, read: false, update: false, delete: false }
   }

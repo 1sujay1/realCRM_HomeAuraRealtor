@@ -266,73 +266,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Secondary KPIs - Horizontal scroll on mobile */}
-      <div className="relative px-12 md:px-0">
-        <div ref={secondaryCardsRef} className="overflow-x-auto pb-4 scrollbar-hide">
-          <div className="flex gap-4 md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-6 min-w-max md:min-w-0">
-            <div className="flex-shrink-0 w-64 md:w-auto">
-              <Card
-                title="Pipeline Value"
-                value="$2.4M"
-                icon={Target}
-                color="bg-indigo-500"
-                subtitle="Potential revenue"
-              />
-            </div>
-            <div className="flex-shrink-0 w-64 md:w-auto">
-              <Card
-                title="Avg Response Time"
-                value="2.3h"
-                icon={Clock}
-                color="bg-cyan-500"
-                subtitle="Lead response"
-              />
-            </div>
-            <div className="flex-shrink-0 w-64 md:w-auto">
-              <Card
-                title="Monthly Growth"
-                value="+18%"
-                icon={BarChart3}
-                color="bg-green-500"
-                subtitle="vs last month"
-              />
-            </div>
-            <div className="flex-shrink-0 w-64 md:w-auto">
-              <Card
-                title="Lead Quality Score"
-                value="8.2/10"
-                icon={PieChart}
-                color="bg-purple-500"
-                subtitle="Based on conversion"
-              />
-            </div>
-          </div>
-        </div>
-        {/* Navigation arrows for mobile */}
-        <div className="md:hidden absolute left-0 top-1/2 transform -translate-y-1/2 z-10">
-          <button
-            onClick={() => scrollLeft(secondaryCardsRef)}
-            disabled={!secondaryArrows.left}
-            className={`bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-lg border border-slate-200 hover:bg-white transition-colors -ml-2 ${!secondaryArrows.left ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-          >
-            <ChevronLeft size={16} className="text-slate-600" />
-          </button>
-        </div>
-        <div className="md:hidden absolute right-0 top-1/2 transform -translate-y-1/2 z-10">
-          <button
-            onClick={() => scrollRight(secondaryCardsRef)}
-            disabled={!secondaryArrows.right}
-            className={`bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-lg border border-slate-200 hover:bg-white transition-colors -mr-2 ${!secondaryArrows.right ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-          >
-            <ChevronRight size={16} className="text-slate-600" />
-          </button>
-        </div>
-      </div>
-
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ChartCard title="Lead Status Distribution" icon={PieChart}>
           <ResponsiveContainer width="100%" height="100%">
             <RechartsPieChart>
@@ -406,9 +341,9 @@ export default function DashboardPage() {
             </RechartsPieChart>
           </ResponsiveContainer>
         </ChartCard>
-      </div>
+      </div> */}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ChartCard title="Monthly Performance" icon={TrendingUp}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={stats.monthlyGrowth} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
@@ -477,7 +412,7 @@ export default function DashboardPage() {
             ))}
           </div>
         </ChartCard>
-      </div>
+      </div> */}
     </div>
   );
 }
