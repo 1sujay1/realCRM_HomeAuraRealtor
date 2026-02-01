@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
-import { SiteVisit } from "@/models/SiteVisit";
+import { RealEstateUpdate } from "@/models/RealEstateUpdate";
 import { validateRequest } from "@/lib/security";
 
 export async function GET(req: Request) {
@@ -10,22 +10,23 @@ export async function GET(req: Request) {
 
   await connectDB();
   const { searchParams } = new URL(req.url);
-  const leadId = searchParams.get("leadId");
-  const status = searchParams.get("status");
+  const location = searchParams.get("location");
+  const tag = searchParams.get("tag");
 
-  const query: any = {};
-  if (leadId) query.lead = leadId;
-  if (status) query.status = status;
+  const query: any = { isActive: true };
+  if (location && location !== "All") query.location = location;
+  if (tag) query.tag = tag;
 
-  const siteVisits = await SiteVisit.find(query)
-    .populate("lead")
-    .sort({ createdAt: -1 });
+  const updates = await RealEstateUpdate.find(query)
+    .populate("project")
+    .populate("createdBy", "name email")
+    .sort({ isPinned: -1, createdAt: -1 });
 
-  return NextResponse.json(siteVisits);
+  return NextResponse.json(updates);
 }
 
 export async function POST(req: Request) {
-  const user: any = await validateRequest(req, "Leads", "create");
+  const user: any = await validateRequest(req, "Projects", "create");
   if (!user || user === "forbidden")
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -33,21 +34,21 @@ export async function POST(req: Request) {
     const body = await req.json();
     await connectDB();
 
-    const newSiteVisit = await SiteVisit.create({
+    const newUpdate = await RealEstateUpdate.create({
       ...body,
       createdBy: user._id,
       createdByName: user.name,
     });
 
-    return NextResponse.json(newSiteVisit);
+    return NextResponse.json(newUpdate, { status: 201 });
   } catch (error) {
-    console.error("Error creating site visit:", error);
+    console.error("Error creating real estate update:", error);
     return NextResponse.json({ error: "Invalid data" }, { status: 400 });
   }
 }
 
 export async function PUT(req: Request) {
-  const user: any = await validateRequest(req, "Leads", "update");
+  const user: any = await validateRequest(req, "Projects", "update");
   if (!user || user === "forbidden")
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -57,46 +58,38 @@ export async function PUT(req: Request) {
 
     await connectDB();
 
-    const updatedSiteVisit = await SiteVisit.findByIdAndUpdate(
+    const updatedUpdate = await RealEstateUpdate.findByIdAndUpdate(
       _id,
       updateData,
       { new: true },
-    ).populate("lead");
+    ).populate("project");
 
-    if (!updatedSiteVisit) {
-      return NextResponse.json(
-        { error: "Site visit not found" },
-        { status: 404 },
-      );
+    if (!updatedUpdate) {
+      return NextResponse.json({ error: "Update not found" }, { status: 404 });
     }
 
-    return NextResponse.json(updatedSiteVisit);
+    return NextResponse.json(updatedUpdate);
   } catch (error) {
-    console.error("Error updating site visit:", error);
+    console.error("Error updating real estate update:", error);
     return NextResponse.json({ error: "Update failed" }, { status: 400 });
   }
 }
 
 export async function DELETE(req: Request) {
-  const user: any = await validateRequest(req, "Leads", "delete");
+  const user: any = await validateRequest(req, "Projects", "delete");
   if (!user || user === "forbidden")
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
-  const ids = searchParams.get("ids");
 
   await connectDB();
 
   try {
-    if (ids) {
-      await SiteVisit.deleteMany({ _id: { $in: ids.split(",") } });
-    } else {
-      await SiteVisit.findByIdAndDelete(id);
-    }
+    await RealEstateUpdate.findByIdAndDelete(id);
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting site visit:", error);
+    console.error("Error deleting real estate update:", error);
     return NextResponse.json({ error: "Delete failed" }, { status: 400 });
   }
 }

@@ -1,9 +1,8 @@
-
 export interface User {
   _id: string;
   name: string;
   email: string;
-  role: 'admin' | 'agent';
+  role: "admin" | "agent";
   permissions: {
     canDeleteLeads: boolean;
     canViewExpenses: boolean;
@@ -43,4 +42,22 @@ export interface Expense {
   expenseType: string;
   notes?: string;
   status: string;
+}
+
+export interface RealEstateUpdate {
+  _id?: string;
+  id?: string;
+  title: string;
+  description: string;
+  location: "West" | "East" | "South" | "Central" | "North" | string;
+  tag:
+    | "Launch"
+    | "Price Update"
+    | "Possession"
+    | "Offer"
+    | "News"
+    | "Other"
+    | string;
+  time?: string;
+  createdByName?: string;
 }

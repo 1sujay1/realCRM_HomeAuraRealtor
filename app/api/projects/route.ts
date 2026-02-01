@@ -32,8 +32,55 @@ export async function POST(req: Request) {
     const body = await req.json();
     await connectDB();
 
+    // Map legacy/front-end payload to Project model fields
+    console.log("Request body for new project:", body);
+    const projectData: any = {
+      name: body.name,
+      builder: body.builder,
+      // propertyCity is required in schema — map from location or zone
+      propertyCity:
+        body.location || body.propertyCity || body.zone || "Unknown",
+      locality: body.locality || undefined,
+      address: body.address || undefined,
+      pincode: body.pincode || undefined,
+      configuration:
+        body.configuration || body.type || body.projectType || undefined,
+      startingPrice: body.startingPrice || undefined,
+      offerPrice: body.offerPrice || undefined,
+      status: body.status || undefined,
+      reraNumber: body.reraNumber || undefined,
+      // projectType enum: Apartment|Villa|Plot — try to map common strings
+      projectType: ((): any => {
+        const t = (body.type || body.projectType || "")
+          .toString()
+          .toLowerCase();
+        if (t.includes("villa")) return "Villa";
+        if (t.includes("plot")) return "Plot";
+        return "Apartment";
+      })(),
+      // Media
+      thumbnail: body.image || body.thumbnail || undefined,
+      propertyImages: body.propertyImages || (body.image ? [body.image] : []),
+      brochureUrl: body.pdfUrl || body.brochureUrl || undefined,
+      googleMapLink: body.googleMapLink || undefined,
+      amenities: body.amenities || [],
+      isDeleted: false,
+      isActive: body.isActive !== undefined ? !!body.isActive : true,
+    };
+
+    // Only set status if it matches allowed values in schema
+    const allowedStatuses = [
+      "Pre-Launch",
+      "New Launch",
+      "Under Construction",
+      "Ready To Move",
+    ];
+    if (body.status && allowedStatuses.includes(body.status)) {
+      projectData.status = body.status;
+    }
+    console.log("Project data to be created:", projectData);
     const newProject = await Project.create({
-      ...body,
+      ...projectData,
       createdBy: user._id,
       createdByName: user.name,
     });
@@ -59,14 +106,11 @@ export async function PUT(req: Request) {
     const updatedProject = await Project.findByIdAndUpdate(
       _id,
       { ...updateData, updatedBy: user._id, updatedByName: user.name },
-      { new: true }
+      { new: true },
     );
 
     if (!updatedProject) {
-      return NextResponse.json(
-        { error: "Project not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
     return NextResponse.json(updatedProject);
@@ -92,12 +136,12 @@ export async function DELETE(req: Request) {
       // Soft delete multiple projects
       await Project.updateMany(
         { _id: { $in: ids.split(",") } },
-        { 
+        {
           isDeleted: true,
           deletedAt: new Date(),
           deletedBy: user._id,
-          deletedByName: user.name
-        }
+          deletedByName: user.name,
+        },
       );
     } else if (id) {
       // Soft delete single project
@@ -105,7 +149,7 @@ export async function DELETE(req: Request) {
         isDeleted: true,
         deletedAt: new Date(),
         deletedBy: user._id,
-        deletedByName: user.name
+        deletedByName: user.name,
       });
     }
     return NextResponse.json({ success: true });
