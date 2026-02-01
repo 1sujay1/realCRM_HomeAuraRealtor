@@ -6,7 +6,7 @@ Implemented a complete CRUD (Create, Read, Update, Delete) system for Real Estat
 
 ---
 
-## 📁 Files Created/Modified
+## 📁 Files Created/Modified.
 
 ### Frontend Components
 
