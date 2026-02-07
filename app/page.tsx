@@ -151,7 +151,7 @@ export default function AuthPage() {
             {view === 'login' ? 'Sign In' : view === 'register' ? 'Create Account' : 'Send Reset Link'}
           </button>
         </form>
-        <div className="mt-8 pt-6 border-t border-slate-100 text-center space-y-3">
+        {/* <div className="mt-8 pt-6 border-t border-slate-100 text-center space-y-3">
           {view === 'login' && (
             <>
               <p className="text-slate-600">
@@ -181,7 +181,7 @@ export default function AuthPage() {
               Back to Login
             </button>
           )}
-        </div>
+        </div> */}
       </div>
     </div>
   );
