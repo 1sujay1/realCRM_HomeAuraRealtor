@@ -249,13 +249,13 @@ export default function SiteVisitsPage() {
                 onChange={e => setFilter(e.target.value)}
               />
             </div>
-              <button
-                onClick={() => openDrawer('filter')}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2.5 border rounded-lg hover:bg-slate-50 font-medium text-slate-600",
-                  (appliedStatusFilter !== 'All') && "bg-purple-50 border-purple-200 text-purple-700"
-                )}
-              >
+            <button
+              onClick={() => openDrawer('filter')}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2.5 border rounded-lg hover:bg-slate-50 font-medium text-slate-600",
+                (appliedStatusFilter !== 'All') && "bg-purple-50 border-purple-200 text-purple-700"
+              )}
+            >
               <Filter size={18} /> Filters
             </button>
           </div>
