@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { Search, Plus, Pencil, Trash, Eye, Upload, Filter, ChevronDown, Download, FileText } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import Drawer from '@/components/ui/Drawer';
@@ -8,7 +9,11 @@ import DataTable from '@/components/ui/DataTable';
 import { cn } from '@/lib/utils';
 
 export default function ExpensesPage() {
-  const [user, setUser] = useState<any>(null);
+  const { data: session } = useSession();
+  const permissions = session?.user?.permissions;
+  const canViewExpenses = permissions?.canViewExpenses;
+  const canCreateExpenses = permissions?.canCreateExpenses;
+  const canEditExpenses = permissions?.canEditExpenses;
   const [expenses, setExpenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
@@ -29,9 +34,12 @@ export default function ExpensesPage() {
   const fetchExpenses = () => { setLoading(true); fetch('/api/expenses').then(res => res.json()).then(d => { setExpenses(d); setLoading(false); }); };
 
   useEffect(() => {
-    fetchExpenses();
-    fetch('/api/auth/me').then(res => res.json()).then(data => setUser(data.user));
-  }, []);
+    if (canViewExpenses) {
+      fetchExpenses();
+      return;
+    }
+    setLoading(false);
+  }, [canViewExpenses]);
 
   const openDrawer = (type: 'filter' | 'view' | 'edit', ex?: any) => {
     setDrawerType(type); setSelectedExpense(ex);
@@ -155,7 +163,7 @@ export default function ExpensesPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div><h1 className="text-2xl font-bold text-slate-800">Expenses</h1><p className="text-slate-500">Track spending</p></div>
           <div className="flex gap-2 no-print">
-            {user?.permissions?.canDeleteExpenses && (
+            {canEditExpenses && (
               <button onClick={() => { setItemToDelete(null); setDeleteConfirmOpen(true); }} disabled={selectedIds.size === 0} className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed">
                 <Trash size={18} /> Delete ({selectedIds.size})
               </button>
@@ -172,29 +180,41 @@ export default function ExpensesPage() {
                 </div>
               )}
             </div>
-            <button onClick={() => openDrawer('edit')} className="flex gap-2 items-center bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-indigo-700"><Plus size={18} /> <span className="hidden sm:inline">New Expense</span></button>
+            {canCreateExpenses && (
+              <button onClick={() => openDrawer('edit')} className="flex gap-2 items-center bg-indigo-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm hover:bg-indigo-700"><Plus size={18} /> <span className="hidden sm:inline">New Expense</span></button>
+            )}
           </div>
         </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex gap-4 no-print items-center">
-          <div className="flex-1 relative"><Search className="absolute left-3 top-3 text-slate-400" size={20} /><input className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Search expenses..." value={filter} onChange={e => setFilter(e.target.value)} /></div>
-          <button onClick={() => openDrawer('filter')} className={cn("flex items-center gap-2 px-4 py-2.5 border rounded-lg hover:bg-slate-50 font-medium text-slate-600", (statusFilter !== 'All' || categoryFilter !== 'All') && "bg-indigo-50 border-indigo-200 text-indigo-700")}><Filter size={18} /> Filters</button>
-        </div>
-
-        <DataTable
-          columns={columns}
-          data={filtered}
-          isLoading={loading}
-          selectedIds={selectedIds}
-          onSelectionChange={setSelectedIds}
-          onRowClick={(row) => openDrawer('view', row)}
-          actionBuilder={(row) => (
-            <div className="flex justify-end gap-2">
-              <button onClick={(e) => { e.stopPropagation(); openDrawer('view', row); }} className="p-1.5 hover:bg-slate-100 text-slate-500 rounded"><Eye size={16} /></button>
-              <button onClick={(e) => { e.stopPropagation(); openDrawer('edit', row); }} className="p-1.5 hover:bg-blue-50 text-blue-600 rounded"><Pencil size={16} /></button>
-              {user?.permissions?.canDeleteExpenses && <button onClick={(e) => { e.stopPropagation(); setItemToDelete(row._id); setDeleteConfirmOpen(true); }} className="p-1.5 hover:bg-red-50 text-red-600 rounded"><Trash size={16} /></button>}
+        {canViewExpenses ? (
+          <>
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex gap-4 no-print items-center">
+              <div className="flex-1 relative"><Search className="absolute left-3 top-3 text-slate-400" size={20} /><input className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Search expenses..." value={filter} onChange={e => setFilter(e.target.value)} /></div>
+              <button onClick={() => openDrawer('filter')} className={cn("flex items-center gap-2 px-4 py-2.5 border rounded-lg hover:bg-slate-50 font-medium text-slate-600", (statusFilter !== 'All' || categoryFilter !== 'All') && "bg-indigo-50 border-indigo-200 text-indigo-700")}><Filter size={18} /> Filters</button>
             </div>
-          )}
-        />
+
+            <DataTable
+              columns={columns}
+              data={filtered}
+              isLoading={loading}
+              selectedIds={selectedIds}
+              onSelectionChange={setSelectedIds}
+              onRowClick={(row) => openDrawer('view', row)}
+              actionBuilder={(row) => (
+                <div className="flex justify-end gap-2">
+                  <button onClick={(e) => { e.stopPropagation(); openDrawer('view', row); }} className="p-1.5 hover:bg-slate-100 text-slate-500 rounded"><Eye size={16} /></button>
+                  {canEditExpenses && (
+                    <button onClick={(e) => { e.stopPropagation(); openDrawer('edit', row); }} className="p-1.5 hover:bg-blue-50 text-blue-600 rounded"><Pencil size={16} /></button>
+                  )}
+                  {canEditExpenses && <button onClick={(e) => { e.stopPropagation(); setItemToDelete(row._id); setDeleteConfirmOpen(true); }} className="p-1.5 hover:bg-red-50 text-red-600 rounded"><Trash size={16} /></button>}
+                </div>
+              )}
+            />
+          </>
+        ) : (
+          <div className="bg-white p-6 rounded-xl border border-slate-200 text-slate-600">
+            You do not have permission to view expenses.
+          </div>
+        )}
       </div>
 
       <Modal isOpen={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} title="Confirm Deletion" type="danger">

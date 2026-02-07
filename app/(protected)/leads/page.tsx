@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { Search, Download, Filter, Plus, FileText, Pencil, Trash, Eye, ChevronDown, Upload, MoreVertical } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import Drawer from '@/components/ui/Drawer';
@@ -9,7 +10,7 @@ import LeadDetailsSidebar from '@/components/leads/LeadDetailsSidebar';
 import { cn } from '@/lib/utils';
 
 export default function LeadsPage() {
-  const [user, setUser] = useState<any>(null);
+  const { data: session } = useSession();
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
@@ -56,7 +57,6 @@ export default function LeadsPage() {
 
   useEffect(() => {
     fetchLeads();
-    fetch('/api/auth/me').then(res => res.json()).then(data => setUser(data.user));
   }, []);
 
   useEffect(() => {
@@ -185,7 +185,7 @@ export default function LeadsPage() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div><h1 className="text-2xl font-bold text-slate-800">Leads Management</h1><p className="text-slate-500">Track potential clients</p></div>
           <div className="flex gap-2 no-print">
-            {user?.permissions?.canDeleteLeads && (
+            {session?.user?.permissions?.canDeleteLeads && (
               <button onClick={() => { setItemToDelete(null); setDeleteConfirmOpen(true); }} disabled={selectedIds.size === 0} className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed">
                 <Trash size={18} /> Delete ({selectedIds.size})
               </button>
@@ -253,7 +253,7 @@ export default function LeadsPage() {
                     <Pencil size={16} />
                     Edit
                   </button>
-                  {user?.permissions?.canDeleteLeads && (
+                  {session?.user?.permissions?.canDeleteLeads && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

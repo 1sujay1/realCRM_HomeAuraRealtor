@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { Search, Plus, MapPin, Tag, FileText, Filter, Building, Upload } from 'lucide-react';
 import { Fragment } from 'react';
 import { X } from 'lucide-react';
@@ -30,6 +31,7 @@ interface Project {
 }
 
 export default function ProjectsPage() {
+  const { data: session } = useSession();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -194,12 +196,14 @@ export default function ProjectsPage() {
             Manage listings and brochures
           </p>
         </div>
-        <button
-          onClick={() => setIsAddProjectModalOpen(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-xl font-semibold hover:bg-blue-700 flex items-center gap-2 shadow-lg shadow-blue-200"
-        >
-          <Plus size={20} /> Add Project
-        </button>
+        {session?.user?.permissions?.canCreateProjects && (
+          <button
+            onClick={() => setIsAddProjectModalOpen(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-xl font-semibold hover:bg-blue-700 flex items-center gap-2 shadow-lg shadow-blue-200"
+          >
+            <Plus size={20} /> Add Project
+          </button>
+        )}
       </div>
       {error && (
         <div className="p-4 bg-red-50 text-red-700 rounded-lg">
@@ -292,18 +296,22 @@ export default function ProjectsPage() {
                     View Details
                   </button>
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => setEditingProject(project)}
-                      className="flex-1 border border-amber-300 text-amber-700 hover:bg-amber-50 py-2 rounded-lg text-sm font-semibold transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteProject(project._id)}
-                      className="flex-1 border border-red-300 text-red-700 hover:bg-red-50 py-2 rounded-lg text-sm font-semibold transition-colors"
-                    >
-                      Delete
-                    </button>
+                    {session?.user?.permissions?.canEditProjects && (
+                      <button
+                        onClick={() => setEditingProject(project)}
+                        className="flex-1 border border-amber-300 text-amber-700 hover:bg-amber-50 py-2 rounded-lg text-sm font-semibold transition-colors"
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {session?.user?.permissions?.canDeleteProjects && (
+                      <button
+                        onClick={() => handleDeleteProject(project._id)}
+                        className="flex-1 border border-red-300 text-red-700 hover:bg-red-50 py-2 rounded-lg text-sm font-semibold transition-colors"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                   <button
                     onClick={() => {

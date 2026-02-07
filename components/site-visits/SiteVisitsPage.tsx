@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { Search, Download, Filter, Plus, FileText, Pencil, Trash, Eye, ChevronDown, Upload, Calendar, MapPin, Clock, MoreVertical, X, Edit2, MessageCircle, Phone } from 'lucide-react';
 import Modal from '@/components/ui/Modal';
 import Drawer from '@/components/ui/Drawer';
@@ -11,7 +12,7 @@ import EditVisitModal from './EditVisitModal';
 import { cn } from '@/lib/utils';
 
 export default function SiteVisitsPage() {
-  const [user, setUser] = useState<any>(null);
+  const { data: session } = useSession();
   const [siteVisits, setSiteVisits] = useState<any[]>([]);
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +33,7 @@ export default function SiteVisitsPage() {
   const [statusFilter, setStatusFilter] = useState('All');
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
-const [visitFilter, setVisitFilter] = useState('today');
+  const [visitFilter, setVisitFilter] = useState('today');
 
 
   const [formData, setFormData] = useState({
@@ -60,7 +61,6 @@ const [visitFilter, setVisitFilter] = useState('today');
   useEffect(() => {
     fetchSiteVisits();
     fetchLeads();
-    fetch('/api/auth/me').then(res => res.json()).then(data => setUser(data.user));
   }, []);
 
   useEffect(() => {
@@ -170,37 +170,37 @@ const [visitFilter, setVisitFilter] = useState('today');
   //   const matchesStatus = statusFilter === 'All' || visit.status === statusFilter;
   //   return matchesSearch && matchesStatus;
   // });
-const filteredVisits = siteVisits.filter(visit => {
-  const matchesSearch = visit.lead?.name?.toLowerCase().includes(filter.toLowerCase()) ||
-                      (visit.location?.toLowerCase().includes(filter.toLowerCase()));
-  const matchesStatus = statusFilter === 'All' || visit.status === statusFilter;
-  
-  // If "All Time" is selected, skip time filtering
-  if (visitFilter === 'all') {
-    return matchesSearch && matchesStatus;
-  }
+  const filteredVisits = siteVisits.filter(visit => {
+    const matchesSearch = visit.lead?.name?.toLowerCase().includes(filter.toLowerCase()) ||
+      (visit.location?.toLowerCase().includes(filter.toLowerCase()));
+    const matchesStatus = statusFilter === 'All' || visit.status === statusFilter;
 
-  // Time-based filtering for other options
-  const today = new Date();
-  const visitDate = new Date(visit.date);
-  let matchesTimeFilter = true;
+    // If "All Time" is selected, skip time filtering
+    if (visitFilter === 'all') {
+      return matchesSearch && matchesStatus;
+    }
 
-  if (visitFilter === 'today') {
-    matchesTimeFilter = visitDate.toDateString() === today.toDateString();
-  } else if (visitFilter === 'week') {
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay());
-    const endOfWeek = new Date(today);
-    endOfWeek.setDate(today.getDate() + (6 - today.getDay()));
-    matchesTimeFilter = visitDate >= startOfWeek && visitDate <= endOfWeek;
-  } else if (visitFilter === 'month') {
-    matchesTimeFilter = 
-      visitDate.getMonth() === today.getMonth() && 
-      visitDate.getFullYear() === today.getFullYear();
-  }
+    // Time-based filtering for other options
+    const today = new Date();
+    const visitDate = new Date(visit.date);
+    let matchesTimeFilter = true;
 
-  return matchesSearch && matchesStatus && matchesTimeFilter;
-});
+    if (visitFilter === 'today') {
+      matchesTimeFilter = visitDate.toDateString() === today.toDateString();
+    } else if (visitFilter === 'week') {
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - today.getDay());
+      const endOfWeek = new Date(today);
+      endOfWeek.setDate(today.getDate() + (6 - today.getDay()));
+      matchesTimeFilter = visitDate >= startOfWeek && visitDate <= endOfWeek;
+    } else if (visitFilter === 'month') {
+      matchesTimeFilter =
+        visitDate.getMonth() === today.getMonth() &&
+        visitDate.getFullYear() === today.getFullYear();
+    }
+
+    return matchesSearch && matchesStatus && matchesTimeFilter;
+  });
   const columns = [
     { key: 'lead', header: 'Lead', className: 'font-medium text-slate-900', render: (row: any) => <span className="font-semibold">{row.lead?.name || 'Unknown'}</span> },
     { key: 'date', header: 'Date', render: (row: any) => <span className="text-sm text-slate-600">{new Date(row.date).toLocaleDateString()}</span> },
@@ -216,7 +216,7 @@ const filteredVisits = siteVisits.filter(visit => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div><h1 className="text-2xl font-bold text-slate-800">Site Visits</h1><p className="text-slate-500">Manage scheduled property visits</p></div>
           <div className="flex gap-2 no-print">
-            {user?.permissions?.canDeleteLeads && (
+            {session?.user?.permissions?.canDeleteSiteVisits && (
               <button onClick={() => { setItemToDelete(null); setDeleteConfirmOpen(true); }} disabled={selectedIds.size === 0} className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed">
                 <Trash size={18} /> Delete ({selectedIds.size})
               </button>
@@ -238,72 +238,71 @@ const filteredVisits = siteVisits.filter(visit => {
         </div>
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-4 no-print">
-  <div className="flex gap-4 items-center">
-    <div className="flex-1 relative">
-      <Search className="absolute left-3 top-3 text-slate-400" size={20} />
-      <input 
-        className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" 
-        placeholder="Search visits..." 
-        value={filter} 
-        onChange={e => setFilter(e.target.value)} 
-      />
-    </div>
-    <button 
-      onClick={() => openDrawer('filter')} 
-      className={cn(
-        "flex items-center gap-2 px-4 py-2.5 border rounded-lg hover:bg-slate-50 font-medium text-slate-600", 
-        (statusFilter !== 'All') && "bg-purple-50 border-purple-200 text-purple-700"
-      )}
-    >
-      <Filter size={18} /> Filters
-    </button>
-  </div>
-  
-  {/* Add this time filters section */}
-<div className="bg-white p-1 rounded-xl inline-flex border border-slate-200 shadow-sm">
-  {["all", "today", "week", "month"].map((filter) => (
-    <button
-      key={filter}
-      onClick={() => setVisitFilter(filter)}
-      className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all capitalize ${
-        visitFilter === filter 
-          ? "bg-purple-100 text-purple-700 shadow-sm" 
-          : "text-slate-500 hover:text-slate-700"
-      }`}
-    >
-      {filter === "today"
-        ? "Today"
-        : filter === "week"
-          ? "This Week"
-          : filter === "month"
-            ? "This Month"
-            : "All Time"}
-    </button>
-  ))}
-</div>
-</div>
+          <div className="flex gap-4 items-center">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-3 text-slate-400" size={20} />
+              <input
+                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                placeholder="Search visits..."
+                value={filter}
+                onChange={e => setFilter(e.target.value)}
+              />
+            </div>
+            <button
+              onClick={() => openDrawer('filter')}
+              className={cn(
+                "flex items-center gap-2 px-4 py-2.5 border rounded-lg hover:bg-slate-50 font-medium text-slate-600",
+                (statusFilter !== 'All') && "bg-purple-50 border-purple-200 text-purple-700"
+              )}
+            >
+              <Filter size={18} /> Filters
+            </button>
+          </div>
 
-{loading ? (
-  // Show loading spinner
-  <div className="flex justify-center items-center py-12">
-    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-  </div>
-) : filteredVisits.length === 0 ? (
-  // Show empty state when no visits
-  <div className="text-center py-12">
-    <Calendar size={48} className="mx-auto text-slate-300 mb-4" />
-    <p className="text-slate-500">No site visits found</p>
-    <button
-      onClick={() => openScheduleModal()}
-      className="mt-4 bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
-    >
-      Schedule Your First Visit
-    </button>
-  </div>
-) : (
-  // Show the list of visits
-  filteredVisits.map((visit) => (
-    <Card key={visit._id} className="p-4 border-l-4 border-l-purple-500">
+          {/* Add this time filters section */}
+          <div className="bg-white p-1 rounded-xl inline-flex border border-slate-200 shadow-sm">
+            {["all", "today", "week", "month"].map((filter) => (
+              <button
+                key={filter}
+                onClick={() => setVisitFilter(filter)}
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all capitalize ${visitFilter === filter
+                    ? "bg-purple-100 text-purple-700 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                  }`}
+              >
+                {filter === "today"
+                  ? "Today"
+                  : filter === "week"
+                    ? "This Week"
+                    : filter === "month"
+                      ? "This Month"
+                      : "All Time"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {loading ? (
+          // Show loading spinner
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+          </div>
+        ) : filteredVisits.length === 0 ? (
+          // Show empty state when no visits
+          <div className="text-center py-12">
+            <Calendar size={48} className="mx-auto text-slate-300 mb-4" />
+            <p className="text-slate-500">No site visits found</p>
+            <button
+              onClick={() => openScheduleModal()}
+              className="mt-4 bg-purple-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+            >
+              Schedule Your First Visit
+            </button>
+          </div>
+        ) : (
+          // Show the list of visits
+          filteredVisits.map((visit) => (
+            <Card key={visit._id} className="p-4 border-l-4 border-l-purple-500">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="flex flex-col items-center bg-purple-50 px-3 py-2 rounded-lg border border-purple-100">
@@ -344,25 +343,24 @@ const filteredVisits = siteVisits.filter(visit => {
                       <Edit2 size={16} />
                     </button>
                     <span
-                      className={`px-2 py-1 rounded text-xs font-semibold ${
-                        visit.status === 'DONE' 
-                          ? 'bg-green-100 text-green-700' 
-                          : visit.status === 'Scheduled' 
-                            ? 'bg-blue-100 text-blue-700' 
+                      className={`px-2 py-1 rounded text-xs font-semibold ${visit.status === 'DONE'
+                          ? 'bg-green-100 text-green-700'
+                          : visit.status === 'Scheduled'
+                            ? 'bg-blue-100 text-blue-700'
                             : 'bg-red-100 text-red-700'
-                      }`}
+                        }`}
                     >
                       {visit.status}
                     </span>
                   </div>
                   <div className="flex gap-2">
-                    <button 
+                    <button
                       className="p-1.5 text-slate-400 hover:bg-slate-100 rounded hover:text-green-600"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <MessageCircle size={18} />
                     </button>
-                    <button 
+                    <button
                       className="p-1.5 text-slate-400 hover:bg-slate-100 rounded hover:text-indigo-600"
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -372,11 +370,11 @@ const filteredVisits = siteVisits.filter(visit => {
                 </div>
               </div>
             </Card>
-  ))
-)}
+          ))
+        )}
 
         {/* <div className="space-y-3"> */}
-          {/* {filteredVisits.map((visit) => (
+        {/* {filteredVisits.map((visit) => (
             <Card key={visit._id} className="p-4 border-l-4 border-l-purple-500">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">

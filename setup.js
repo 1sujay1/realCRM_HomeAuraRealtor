@@ -36,7 +36,7 @@ dirs.forEach((dir) => {
 const files = {
   // --- CONFIGURATION ---
   "lib/config.ts": `
-export const APP_NAME = "BrokerFlow Pro";
+export const APP_NAME = "Home Aura Realtor";
 export const COMPANY_ADDRESS = "123 Real Estate Ave, Business City";
 export const SUPPORT_EMAIL = "support@brokerflow.com";
 `,
@@ -74,7 +74,7 @@ export const sendVerificationEmail = async (to: string, name: string, code: stri
     const subject = "Verify your account";
     const html = \`
       <div style="font-family: Arial, sans-serif; padding: 20px;">
-        <h2>Welcome to BrokerFlow Pro, \${name}!</h2>
+        <h2>Welcome to Home Aura Realtor, \${name}!</h2>
         <p>Please use the following code to verify your account:</p>
         <h1 style="color: #4f46e5; letter-spacing: 5px;">\${code}</h1>
         <p>Or click <a href="\${process.env.NEXT_PUBLIC_APP_URL}/verify?code=\${code}">here</a> to verify.</p>
@@ -922,11 +922,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then(res => res.json())
-      .then(data => { if(data.user) setUser(data.user); else window.location.href = '/'; })
-      .finally(() => setLoading(false));
-  }, []);
+    if (status !== 'loading') {
+      if (!session?.user) window.location.href = '/';
+    }
+  }, [session, status]);
 
   if (loading) return <div className="h-screen flex flex-col items-center justify-center bg-slate-50 text-indigo-600 gap-2"><Spinner size={40} /><p className="text-sm font-medium">Loading {APP_NAME}...</p></div>;
   if (!user) return null;
@@ -1109,7 +1108,7 @@ export default function LeadsPage() {
 
   useEffect(() => { 
     fetchLeads(); 
-    fetch('/api/auth/me').then(res => res.json()).then(data => setUser(data.user));
+    // User data now available from useSession hook
   }, []);
 
   const openDrawer = (type: 'filter' | 'view' | 'edit', lead?: any) => {
@@ -1300,7 +1299,7 @@ export default function ExpensesPage() {
   
   useEffect(() => { 
     fetchExpenses(); 
-    fetch('/api/auth/me').then(res => res.json()).then(data => setUser(data.user));
+    // User data now available from useSession hook
   }, []);
 
   const openDrawer = (type: 'filter' | 'view' | 'edit', ex?: any) => {
@@ -1455,7 +1454,7 @@ export default function UsersPage() {
   const fetchUsers = () => { setLoading(true); fetch('/api/users').then(res => res.json()).then(d => { setUsers(d); setLoading(false); }); };
   useEffect(() => { 
     fetchUsers(); 
-    fetch('/api/auth/me').then(res => res.json()).then(data => setUser(data.user));
+    // User data now available from useSession hook
   }, []);
 
   const openDrawer = (user?: any) => {
@@ -1544,7 +1543,10 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/auth/me').then(res => res.json()).then(data => setUser(data.user)).finally(() => setLoading(false));
+    const { data: session, status } = useSession();
+    if (status !== 'loading' && !session?.user) {
+      // Redirect or handle unauthenticated state
+    }
   }, []);
 
   if (loading) return <div className="flex justify-center p-12"><Spinner size={40} className="text-indigo-600" /></div>;

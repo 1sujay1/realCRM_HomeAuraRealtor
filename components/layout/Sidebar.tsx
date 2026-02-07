@@ -1,13 +1,16 @@
 'use client';
-import { LayoutDashboard, Users, User, LogOut, Building, DollarSign, Lock, ChevronLeft, ChevronRight, MapPin, Home } from 'lucide-react';
+import { LayoutDashboard, Users, User, LogOut, Building, DollarSign, Lock, ChevronLeft, ChevronRight, MapPin, Home, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import { APP_NAME } from '@/lib/config';
 
 export default function Sidebar({ user, isMobileOpen, setIsMobileOpen, isDesktopCollapsed, setIsDesktopCollapsed }: any) {
   const pathname = usePathname();
-  const handleLogout = async () => { await fetch('/api/auth/logout', { method: 'POST' }); window.location.href = '/'; };
+  const handleLogout = async () => {
+    await signOut({ redirect: true, callbackUrl: '/' });
+  };
   const NavItem = ({ href, icon: Icon, label }: any) => {
     const isActive = pathname === href;
     return (
@@ -38,8 +41,15 @@ export default function Sidebar({ user, isMobileOpen, setIsMobileOpen, isDesktop
           <NavItem href="/leads" icon={Users} label="Leads" />
           <NavItem href="/site-visits" icon={MapPin} label="Site Visits" />
           <NavItem href="/projects" icon={Home} label="Projects" /> {/* Added Projects link */}
-          {(user?.role === 'admin' || user?.permissions?.canViewExpenses) && <NavItem href="/expenses" icon={DollarSign} label="Expenses" />}
-          {user?.role === 'admin' && (<div className={cn(!isDesktopCollapsed && "pt-6 mt-2")}>{!isDesktopCollapsed && <p className="px-4 text-sm font-bold text-slate-400 uppercase mb-3 tracking-wider">Admin</p>}<NavItem href="/users" icon={Lock} label="User Management" /></div>)}
+
+          {user?.role === 'admin' && (
+            <div className={cn(!isDesktopCollapsed && "pt-6 mt-2")}>
+              {!isDesktopCollapsed && <p className="px-4 text-sm font-bold text-slate-400 uppercase mb-3 tracking-wider">Admin</p>}
+              <NavItem href="/users" icon={Lock} label="User Management" />
+              <NavItem href="/expenses" icon={DollarSign} label="Expenses" />
+              <NavItem href="/expense-dashboard" icon={BarChart3} label="Expense Dashboard" />
+            </div>
+          )}
           <div className={cn(!isDesktopCollapsed && "pt-6 mt-2")}><NavItem href="/profile" icon={User} label="My Profile" /></div>
         </nav>
         <div className="p-5 border-t border-slate-100 bg-slate-50/50">
