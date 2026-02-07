@@ -1,12 +1,13 @@
 'use client';
-import { useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { useEffect, useState } from 'react';
+import { signIn, useSession } from 'next-auth/react';
 import { Building } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { APP_NAME } from '@/lib/config';
 import Spinner from '@/components/ui/Spinner';
 
 export default function AuthPage() {
+  const { data: session, status } = useSession();
   const [view, setView] = useState<'login' | 'register' | 'forgot'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,6 +16,12 @@ export default function AuthPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const router = useRouter();
+
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.replace('/dashboard');
+    }
+  }, [status, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,6 +73,22 @@ export default function AuthPage() {
       setLoading(false);
     }
   };
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-indigo-50 p-4">
+        <Spinner size={40} className="text-indigo-600" />
+      </div>
+    );
+  }
+
+  if (status === 'authenticated') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-indigo-50 p-4">
+        <Spinner size={40} className="text-indigo-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-indigo-50 p-4">

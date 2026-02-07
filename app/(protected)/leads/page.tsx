@@ -52,7 +52,12 @@ export default function LeadsPage() {
 
   const fetchLeads = () => {
     setLoading(true);
-    fetch('/api/leads').then(res => res.json()).then(data => { setLeads(data); setLoading(false); });
+    fetch('/api/leads')
+      .then(res => res.json())
+      .then(data => {
+        setLeads(Array.isArray(data) ? data : []);
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -164,10 +169,14 @@ export default function LeadsPage() {
     return 'bg-slate-100 text-slate-800';
   };
 
-  const filteredLeads = leads.filter(lead => {
-    const matchesSearch = lead.name.toLowerCase().includes(filter.toLowerCase()) || lead.phone.includes(filter);
-    const matchesStatus = statusFilter === 'All' || lead.status === statusFilter;
-    const matchesSource = sourceFilter === 'All' || lead.source === sourceFilter;
+  const filteredLeads = (Array.isArray(leads) ? leads : []).filter(lead => {
+    const leadName = lead.name?.toLowerCase() || '';
+    const leadPhone = lead.phone || '';
+    const leadStatus = lead.status || '';
+    const leadSource = lead.source || '';
+    const matchesSearch = leadName.includes(filter.toLowerCase()) || leadPhone.includes(filter);
+    const matchesStatus = statusFilter === 'All' || leadStatus === statusFilter;
+    const matchesSource = sourceFilter === 'All' || leadSource === sourceFilter;
     return matchesSearch && matchesStatus && matchesSource;
   });
 

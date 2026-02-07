@@ -9,7 +9,7 @@ import { APP_NAME } from '@/lib/config';
 export default function Sidebar({ user, isMobileOpen, setIsMobileOpen, isDesktopCollapsed, setIsDesktopCollapsed }: any) {
   const pathname = usePathname();
   const handleLogout = async () => {
-    await signOut({ redirect: true, callbackUrl: '/' });
+    await signOut({ redirect: true, callbackUrl: window.location.origin });
   };
   const NavItem = ({ href, icon: Icon, label }: any) => {
     const isActive = pathname === href;

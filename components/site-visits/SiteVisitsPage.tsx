@@ -49,13 +49,13 @@ export default function SiteVisitsPage() {
   const fetchSiteVisits = () => {
     setLoading(true);
     fetch('/api/site-visits').then(res => res.json()).then(data => {
-      setSiteVisits(data);
+      setSiteVisits(Array.isArray(data) ? data : []);
       setLoading(false);
     });
   };
 
   const fetchLeads = () => {
-    fetch('/api/leads').then(res => res.json()).then(data => setLeads(data));
+    fetch('/api/leads').then(res => res.json()).then(data => setLeads(Array.isArray(data) ? data : []));
   };
 
   useEffect(() => {
@@ -170,7 +170,7 @@ export default function SiteVisitsPage() {
   //   const matchesStatus = statusFilter === 'All' || visit.status === statusFilter;
   //   return matchesSearch && matchesStatus;
   // });
-  const filteredVisits = siteVisits.filter(visit => {
+  const filteredVisits = (Array.isArray(siteVisits) ? siteVisits : []).filter(visit => {
     const matchesSearch = visit.lead?.name?.toLowerCase().includes(filter.toLowerCase()) ||
       (visit.location?.toLowerCase().includes(filter.toLowerCase()));
     const matchesStatus = statusFilter === 'All' || visit.status === statusFilter;
@@ -182,7 +182,7 @@ export default function SiteVisitsPage() {
 
     // Time-based filtering for other options
     const today = new Date();
-    const visitDate = new Date(visit.date);
+    const visitDate = visit.date ? new Date(visit.date) : new Date('');
     let matchesTimeFilter = true;
 
     if (visitFilter === 'today') {
@@ -266,8 +266,8 @@ export default function SiteVisitsPage() {
                 key={filter}
                 onClick={() => setVisitFilter(filter)}
                 className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all capitalize ${visitFilter === filter
-                    ? "bg-purple-100 text-purple-700 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
+                  ? "bg-purple-100 text-purple-700 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
                   }`}
               >
                 {filter === "today"
@@ -344,10 +344,10 @@ export default function SiteVisitsPage() {
                     </button>
                     <span
                       className={`px-2 py-1 rounded text-xs font-semibold ${visit.status === 'DONE'
-                          ? 'bg-green-100 text-green-700'
-                          : visit.status === 'Scheduled'
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-red-100 text-red-700'
+                        ? 'bg-green-100 text-green-700'
+                        : visit.status === 'Scheduled'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-red-100 text-red-700'
                         }`}
                     >
                       {visit.status}

@@ -55,7 +55,7 @@ export default function ProjectsPage() {
       }
 
       const data = await response.json();
-      setProjects(data);
+      setProjects(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching projects:', err);
       setError('Failed to load projects. Please try again.');
@@ -162,7 +162,7 @@ export default function ProjectsPage() {
     }
   };
 
-  const filteredProjects = projects.filter(project => {
+  const filteredProjects = (Array.isArray(projects) ? projects : []).filter(project => {
     const matchesZone = projectZoneFilter === 'All' || project.zone === projectZoneFilter;
     const searchTerm = projectLocationFilter.toLowerCase();
 
@@ -179,7 +179,7 @@ export default function ProjectsPage() {
     );
   });
 
-  if (loading && projects.length === 0) {
+  if (loading && (Array.isArray(projects) ? projects.length === 0 : true)) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>

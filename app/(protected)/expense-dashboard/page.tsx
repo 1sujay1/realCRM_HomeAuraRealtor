@@ -39,7 +39,7 @@ export default function ExpenseDashboardPage() {
                     throw new Error('Failed to fetch expenses');
                 }
                 const data = await res.json();
-                setExpenses(data || []);
+                setExpenses(Array.isArray(data) ? data : []);
             } catch (err) {
                 setError('Failed to load expenses dashboard.');
             } finally {
@@ -56,7 +56,7 @@ export default function ExpenseDashboardPage() {
         if (start) start.setHours(0, 0, 0, 0);
         if (end) end.setHours(23, 59, 59, 999);
 
-        return expenses.filter((item) => {
+        return (Array.isArray(expenses) ? expenses : []).filter((item) => {
             const itemDate = item.date ? new Date(item.date) : null;
             if (!itemDate) return false;
             if (start && itemDate < start) return false;
@@ -83,7 +83,7 @@ export default function ExpenseDashboardPage() {
     }, [filteredExpenses]);
 
     const grandTotal = useMemo(() => {
-        return expenses.reduce((sum, d) => sum + Number(d.amount || 0), 0);
+        return (Array.isArray(expenses) ? expenses : []).reduce((sum, d) => sum + Number(d.amount || 0), 0);
     }, [expenses]);
 
     const colors: Record<string, string> = {

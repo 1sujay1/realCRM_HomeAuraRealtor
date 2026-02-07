@@ -21,17 +21,50 @@ export default function ExpensesPage() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [drawerType, setDrawerType] = useState<'filter' | 'view' | 'edit'>('filter');
   const [selectedExpense, setSelectedExpense] = useState<any>(null);
-  const [formData, setFormData] = useState({ description: '', amount: '', category: 'Office', expenseType: 'Rent', status: 'Pending' });
+  const [formData, setFormData] = useState({
+    description: '',
+    amount: '',
+    category: 'Office',
+    expenseType: 'Rent',
+    paymentMode: 'Other',
+    paymentMadeBy: 'Other',
+    notes: '',
+    status: 'Pending',
+    date: ''
+  });
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [expenseTypeFilter, setExpenseTypeFilter] = useState('All');
+  const [paymentModeFilter, setPaymentModeFilter] = useState('All');
+  const [paymentMadeByFilter, setPaymentMadeByFilter] = useState('All');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+
+  const [appliedFilters, setAppliedFilters] = useState({
+    category: '',
+    status: 'All',
+    expenseType: 'All',
+    paymentMode: 'All',
+    paymentMadeBy: 'All',
+    fromDate: '',
+    toDate: '',
+  });
   const [showExportMenu, setShowExportMenu] = useState(false);
 
-  const fetchExpenses = () => { setLoading(true); fetch('/api/expenses').then(res => res.json()).then(d => { setExpenses(d); setLoading(false); }); };
+  const fetchExpenses = () => {
+    setLoading(true);
+    fetch('/api/expenses')
+      .then(res => res.json())
+      .then(d => {
+        setExpenses(Array.isArray(d) ? d : []);
+        setLoading(false);
+      });
+  };
 
   useEffect(() => {
     if (canViewExpenses) {
@@ -44,8 +77,18 @@ export default function ExpensesPage() {
   const openDrawer = (type: 'filter' | 'view' | 'edit', ex?: any) => {
     setDrawerType(type); setSelectedExpense(ex);
     if (type === 'edit') {
-      if (ex) setFormData({ description: ex.description, amount: ex.amount, category: ex.category, expenseType: ex.expenseType, status: ex.status });
-      else setFormData({ description: '', amount: '', category: 'Office', expenseType: 'Rent', status: 'Pending' });
+      if (ex) setFormData({
+        description: ex.description,
+        amount: ex.amount,
+        category: ex.category,
+        expenseType: ex.expenseType,
+        paymentMode: ex.paymentMode || 'Other',
+        paymentMadeBy: ex.paymentMadeBy || 'Other',
+        notes: ex.notes || '',
+        status: ex.status,
+        date: ex.date ? new Date(ex.date).toISOString().split('T')[0] : ''
+      });
+      else setFormData({ description: '', amount: '', category: 'Office', expenseType: 'Rent', paymentMode: 'Other', paymentMadeBy: 'Other', notes: '', status: 'Pending', date: '' });
     }
     setIsDrawerOpen(true);
   };
@@ -96,19 +139,23 @@ export default function ExpensesPage() {
             <table>
               <thead>
                 <tr>
+                  <th>Category</th>
                   <th>Description</th>
                   <th>Amount</th>
-                  <th>Category</th>
+                  <th>Date</th>
+                  <th>Payment Mode</th>
                   <th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 ${filtered.map(ex => `
                   <tr>
-                    <td>${ex.description}</td>
-                    <td>₹${ex.amount}</td>
-                    <td>${ex.category}</td>
-                    <td><span class="status ${ex.status.toLowerCase()}">${ex.status}</span></td>
+                    <td>${ex.category || '-'}</td>
+                    <td>${ex.description || '-'}</td>
+                    <td>₹${ex.amount || 0}</td>
+                    <td>${ex.date ? new Date(ex.date).toLocaleDateString() : '-'}</td>
+                    <td>${ex.paymentMode || '-'}</td>
+                    <td><span class="status ${String(ex.status || 'Pending').toLowerCase()}">${ex.status || 'Pending'}</span></td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -125,8 +172,8 @@ export default function ExpensesPage() {
       return;
     }
     // CSV export
-    const headers = ['Description,Amount,Category,Status'];
-    const rows = filtered.map(ex => `"${ex.description}","₹${ex.amount}","${ex.category}","${ex.status}"`);
+    const headers = ['Category,Description,Amount,Date,Payment Mode,Status'];
+    const rows = filtered.map(ex => `"${ex.category || ''}","${ex.description || ''}","₹${ex.amount || 0}","${ex.date ? new Date(ex.date).toLocaleDateString() : ''}","${ex.paymentMode || ''}","${ex.status || 'Pending'}"`);
     const csvContent = headers.concat(rows).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
@@ -137,11 +184,28 @@ export default function ExpensesPage() {
     window.URL.revokeObjectURL(url);
   };
 
-  const filtered = expenses.filter(ex => {
-    const matchSearch = ex.description.toLowerCase().includes(filter.toLowerCase());
-    const matchCat = categoryFilter === 'All' || ex.category === categoryFilter;
-    const matchStatus = statusFilter === 'All' || ex.status === statusFilter;
-    return matchSearch && matchCat && matchStatus;
+  const filtered = (Array.isArray(expenses) ? expenses : []).filter(ex => {
+    const description = ex.description?.toLowerCase() || '';
+    const matchSearch = description.includes(filter.toLowerCase());
+    const categorySearch = appliedFilters.category.toLowerCase();
+    const matchCat = !categorySearch || (ex.category || '').toLowerCase().includes(categorySearch);
+    const matchStatus = appliedFilters.status === 'All' || ex.status === appliedFilters.status;
+    const matchExpenseType = appliedFilters.expenseType === 'All' || ex.expenseType === appliedFilters.expenseType;
+    const matchPaymentMode = appliedFilters.paymentMode === 'All' || ex.paymentMode === appliedFilters.paymentMode;
+    const matchPaymentMadeBy = appliedFilters.paymentMadeBy === 'All' || ex.paymentMadeBy === appliedFilters.paymentMadeBy;
+
+    if (!appliedFilters.fromDate || !appliedFilters.toDate) {
+      return matchSearch && matchCat && matchStatus && matchExpenseType && matchPaymentMode && matchPaymentMadeBy;
+    }
+
+    const start = new Date(appliedFilters.fromDate);
+    const end = new Date(appliedFilters.toDate);
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+    const expenseDate = ex.date ? new Date(ex.date) : null;
+    const matchDate = expenseDate ? expenseDate >= start && expenseDate <= end : false;
+
+    return matchSearch && matchCat && matchStatus && matchExpenseType && matchPaymentMode && matchPaymentMadeBy && matchDate;
   });
 
   const getStatusColor = (status: string) => {
@@ -152,9 +216,12 @@ export default function ExpensesPage() {
   };
 
   const columns = [
-    { key: 'description', header: 'Description', render: (row: any) => <div><p className="font-medium">{row.description}</p><p className="text-xs text-slate-500">{row.category}</p></div> },
-    { key: 'amount', header: 'Amount', render: (row: any) => <span className="font-bold text-slate-700">₹{row.amount}</span> },
-    { key: 'status', header: 'Status', render: (row: any) => <span className={cn("text-xs px-2 py-1 rounded-full font-medium", getStatusColor(row.status))}>{row.status}</span> },
+    { key: 'category', header: 'Category', render: (row: any) => <span className="text-sm text-slate-700">{row.category || '-'}</span> },
+    { key: 'description', header: 'Description', render: (row: any) => <span className="font-medium">{row.description || '-'}</span> },
+    { key: 'amount', header: 'Amount', render: (row: any) => <span className="font-bold text-slate-700">₹{row.amount || 0}</span> },
+    { key: 'date', header: 'Date', render: (row: any) => <span className="text-sm text-slate-600">{row.date ? new Date(row.date).toLocaleDateString() : '-'}</span> },
+    { key: 'paymentMode', header: 'Payment Mode', render: (row: any) => <span className="text-sm text-slate-600">{row.paymentMode || '-'}</span> },
+    { key: 'status', header: 'Status', render: (row: any) => <span className={cn("text-xs px-2 py-1 rounded-full font-medium", getStatusColor(row.status))}>{row.status || 'Pending'}</span> },
   ];
 
   return (
@@ -225,17 +292,72 @@ export default function ExpensesPage() {
       <Drawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} title={drawerType === 'filter' ? 'Filter Expenses' : drawerType === 'view' ? 'Expense Details' : selectedExpense ? 'Edit Expense' : 'New Expense'}>
         {drawerType === 'filter' && (
           <div className="space-y-6">
-            <div className="space-y-2"><label className="text-sm font-medium">Category</label><select className="w-full p-2 border rounded-lg" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}><option value="All">All Categories</option><option value="Office">Office</option><option value="Travel">Travel</option><option value="Food">Food</option></select></div>
+            <div className="space-y-2"><label className="text-sm font-medium">Category</label><input className="w-full p-2 border rounded-lg" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} placeholder="Search category" /></div>
             <div className="space-y-2"><label className="text-sm font-medium">Status</label><select className="w-full p-2 border rounded-lg" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="All">All Statuses</option><option value="Pending">Pending</option><option value="Completed">Completed</option><option value="Cancelled">Cancelled</option></select></div>
-            <button onClick={() => { setStatusFilter('All'); setCategoryFilter('All'); }} className="w-full py-2 text-sm text-slate-500 hover:text-slate-700 underline">Reset Filters</button>
+            <div className="space-y-2"><label className="text-sm font-medium">Expense Type</label><select className="w-full p-2 border rounded-lg" value={expenseTypeFilter} onChange={e => setExpenseTypeFilter(e.target.value)}><option value="All">All Types</option><option value="Rent">Rent</option><option value="Travel">Travel</option><option value="Food">Food</option><option value="Salary">Salary</option><option value="Ads">Ads</option><option value="Other">Other</option></select></div>
+            <div className="space-y-2"><label className="text-sm font-medium">Payment Mode</label><select className="w-full p-2 border rounded-lg" value={paymentModeFilter} onChange={e => setPaymentModeFilter(e.target.value)}><option value="All">All Modes</option><option value="Bank">Bank</option><option value="Cash">Cash</option><option value="Credit Card">Credit Card</option><option value="Debit Card">Debit Card</option><option value="UPI">UPI</option><option value="Other">Other</option></select></div>
+            <div className="space-y-2"><label className="text-sm font-medium">Payment Made By</label><select className="w-full p-2 border rounded-lg" value={paymentMadeByFilter} onChange={e => setPaymentMadeByFilter(e.target.value)}><option value="All">All</option><option value="Mangal">Mangal</option><option value="Raja Pandian">Raja Pandian</option><option value="Ajit">Ajit</option><option value="Other">Other</option></select></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><label className="text-sm font-medium">From Date</label><input type="date" className="w-full p-2 border rounded-lg" value={fromDate} onChange={e => setFromDate(e.target.value)} required /></div>
+              <div className="space-y-2"><label className="text-sm font-medium">To Date</label><input type="date" className="w-full p-2 border rounded-lg" value={toDate} onChange={e => setToDate(e.target.value)} required /></div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setAppliedFilters({
+                    category: categoryFilter,
+                    status: statusFilter,
+                    expenseType: expenseTypeFilter,
+                    paymentMode: paymentModeFilter,
+                    paymentMadeBy: paymentMadeByFilter,
+                    fromDate,
+                    toDate,
+                  });
+                  setIsDrawerOpen(false);
+                }}
+                className="flex-1 py-2 text-sm bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700"
+              >
+                Apply Filters
+              </button>
+              <button
+                onClick={() => {
+                  setStatusFilter('All');
+                  setCategoryFilter('');
+                  setExpenseTypeFilter('All');
+                  setPaymentModeFilter('All');
+                  setPaymentMadeByFilter('All');
+                  setFromDate('');
+                  setToDate('');
+                  setAppliedFilters({
+                    category: '',
+                    status: 'All',
+                    expenseType: 'All',
+                    paymentMode: 'All',
+                    paymentMadeBy: 'All',
+                    fromDate: '',
+                    toDate: '',
+                  });
+                }}
+                className="flex-1 py-2 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50"
+              >
+                Reset
+              </button>
+            </div>
           </div>
         )}
         {drawerType === 'view' && selectedExpense && (
           <div className="space-y-4">
-            <div className="p-4 bg-slate-50 rounded-lg"><p className="text-xs font-bold text-slate-400 uppercase">Amount</p><p className="text-3xl font-bold text-slate-800">₹{selectedExpense.amount}</p></div>
-            <div className="space-y-1"><p className="text-xs uppercase text-slate-400 font-bold">Category</p><p>{selectedExpense.category}</p></div>
-            <div className="space-y-1"><p className="text-xs uppercase text-slate-400 font-bold">Status</p><span className={cn("inline-block px-2 py-1 rounded text-sm font-medium", getStatusColor(selectedExpense.status))}>{selectedExpense.status}</span></div>
-            <div className="space-y-1"><p className="text-xs uppercase text-slate-400 font-bold">Description</p><p>{selectedExpense.description}</p></div>
+            <div className="p-4 bg-slate-50 rounded-lg"><p className="text-xs font-bold text-slate-400 uppercase">Amount</p><p className="text-3xl font-bold text-slate-800">₹{selectedExpense.amount || 0}</p></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1"><p className="text-xs uppercase text-slate-400 font-bold">Category</p><p>{selectedExpense.category || '-'}</p></div>
+              <div className="space-y-1"><p className="text-xs uppercase text-slate-400 font-bold">Expense Type</p><p>{selectedExpense.expenseType || '-'}</p></div>
+              <div className="space-y-1"><p className="text-xs uppercase text-slate-400 font-bold">Payment Mode</p><p>{selectedExpense.paymentMode || '-'}</p></div>
+              <div className="space-y-1"><p className="text-xs uppercase text-slate-400 font-bold">Payment Made By</p><p>{selectedExpense.paymentMadeBy || '-'}</p></div>
+              <div className="space-y-1"><p className="text-xs uppercase text-slate-400 font-bold">Date</p><p>{selectedExpense.date ? new Date(selectedExpense.date).toLocaleDateString() : '-'}</p></div>
+              <div className="space-y-1"><p className="text-xs uppercase text-slate-400 font-bold">Status</p><span className={cn("inline-block px-2 py-1 rounded text-sm font-medium", getStatusColor(selectedExpense.status))}>{selectedExpense.status || 'Pending'}</span></div>
+            </div>
+            <div className="space-y-1"><p className="text-xs uppercase text-slate-400 font-bold">Description</p><p>{selectedExpense.description || '-'}</p></div>
+            <div className="space-y-1"><p className="text-xs uppercase text-slate-400 font-bold">Notes</p><p>{selectedExpense.notes || '-'}</p></div>
           </div>
         )}
         {drawerType === 'edit' && (
@@ -243,7 +365,12 @@ export default function ExpensesPage() {
             <div className="space-y-1"><label className="text-sm font-medium">Description</label><input className="w-full p-2.5 border rounded-lg" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} required /></div>
             <div className="space-y-1"><label className="text-sm font-medium">Amount</label><input className="w-full p-2.5 border rounded-lg" value={formData.amount} onChange={e => setFormData({ ...formData, amount: e.target.value })} required /></div>
             <div className="space-y-1"><label className="text-sm font-medium">Category</label><select className="w-full p-2.5 border rounded-lg" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}><option value="Office">Office</option><option value="Travel">Travel</option><option value="Food">Food</option></select></div>
+            <div className="space-y-1"><label className="text-sm font-medium">Expense Type</label><select className="w-full p-2.5 border rounded-lg" value={formData.expenseType} onChange={e => setFormData({ ...formData, expenseType: e.target.value })}><option value="Rent">Rent</option><option value="Travel">Travel</option><option value="Food">Food</option><option value="Salary">Salary</option><option value="Ads">Ads</option><option value="Other">Other</option></select></div>
+            <div className="space-y-1"><label className="text-sm font-medium">Payment Mode</label><select className="w-full p-2.5 border rounded-lg" value={formData.paymentMode} onChange={e => setFormData({ ...formData, paymentMode: e.target.value })}><option value="Bank">Bank</option><option value="Cash">Cash</option><option value="Credit Card">Credit Card</option><option value="Debit Card">Debit Card</option><option value="UPI">UPI</option><option value="Other">Other</option></select></div>
+            <div className="space-y-1"><label className="text-sm font-medium">Payment Made By</label><select className="w-full p-2.5 border rounded-lg" value={formData.paymentMadeBy} onChange={e => setFormData({ ...formData, paymentMadeBy: e.target.value })}><option value="Mangal">Mangal</option><option value="Raja Pandian">Raja Pandian</option><option value="Ajit">Ajit</option><option value="Other">Other</option></select></div>
             <div className="space-y-1"><label className="text-sm font-medium">Status</label><select className="w-full p-2.5 border rounded-lg" value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })}><option value="Pending">Pending</option><option value="Completed">Completed</option><option value="Cancelled">Cancelled</option></select></div>
+            <div className="space-y-1"><label className="text-sm font-medium">Date</label><input type="date" className="w-full p-2.5 border rounded-lg" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} required /></div>
+            <div className="space-y-1"><label className="text-sm font-medium">Notes</label><textarea className="w-full p-2.5 border rounded-lg" value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} rows={3} /></div>
             <div className="pt-4"><button disabled={loading} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 flex justify-center">{loading ? <Spinner className="text-white" /> : 'Save Changes'}</button></div>
           </form>
         )}
