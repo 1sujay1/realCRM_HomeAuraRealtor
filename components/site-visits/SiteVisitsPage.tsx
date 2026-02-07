@@ -31,6 +31,7 @@ export default function SiteVisitsPage() {
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
   const [statusFilter, setStatusFilter] = useState('All');
+  const [appliedStatusFilter, setAppliedStatusFilter] = useState('All');
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [visitFilter, setVisitFilter] = useState('today');
@@ -173,7 +174,7 @@ export default function SiteVisitsPage() {
   const filteredVisits = (Array.isArray(siteVisits) ? siteVisits : []).filter(visit => {
     const matchesSearch = visit.lead?.name?.toLowerCase().includes(filter.toLowerCase()) ||
       (visit.location?.toLowerCase().includes(filter.toLowerCase()));
-    const matchesStatus = statusFilter === 'All' || visit.status === statusFilter;
+    const matchesStatus = appliedStatusFilter === 'All' || visit.status === appliedStatusFilter;
 
     // If "All Time" is selected, skip time filtering
     if (visitFilter === 'all') {
@@ -248,13 +249,13 @@ export default function SiteVisitsPage() {
                 onChange={e => setFilter(e.target.value)}
               />
             </div>
-            <button
-              onClick={() => openDrawer('filter')}
-              className={cn(
-                "flex items-center gap-2 px-4 py-2.5 border rounded-lg hover:bg-slate-50 font-medium text-slate-600",
-                (statusFilter !== 'All') && "bg-purple-50 border-purple-200 text-purple-700"
-              )}
-            >
+              <button
+                onClick={() => openDrawer('filter')}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2.5 border rounded-lg hover:bg-slate-50 font-medium text-slate-600",
+                  (appliedStatusFilter !== 'All') && "bg-purple-50 border-purple-200 text-purple-700"
+                )}
+              >
               <Filter size={18} /> Filters
             </button>
           </div>
@@ -470,7 +471,26 @@ export default function SiteVisitsPage() {
         {drawerType === 'filter' && (
           <div className="space-y-6">
             <div className="space-y-2"><label className="text-sm font-medium">Status</label><select className="w-full p-2 border rounded-lg" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="All">All Statuses</option><option value="Scheduled">Scheduled</option><option value="DONE">Done</option><option value="Cancelled">Cancelled</option></select></div>
-            <button onClick={() => { setStatusFilter('All'); }} className="w-full py-2 text-sm text-slate-500 hover:text-slate-700 underline">Reset Filters</button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setAppliedStatusFilter(statusFilter);
+                  setIsDrawerOpen(false);
+                }}
+                className="flex-1 py-2 text-sm bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700"
+              >
+                Apply Filters
+              </button>
+              <button
+                onClick={() => {
+                  setStatusFilter('All');
+                  setAppliedStatusFilter('All');
+                }}
+                className="flex-1 py-2 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50"
+              >
+                Reset
+              </button>
+            </div>
           </div>
         )}
         {drawerType === 'edit' && (

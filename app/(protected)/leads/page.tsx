@@ -28,6 +28,26 @@ export default function LeadsPage() {
 
   const [statusFilter, setStatusFilter] = useState('All');
   const [sourceFilter, setSourceFilter] = useState('All');
+  const [projectFilter, setProjectFilter] = useState('');
+  const [readinessFilter, setReadinessFilter] = useState('All');
+  const [propertyTypeFilter, setPropertyTypeFilter] = useState('All');
+  const [preferredLocationFilter, setPreferredLocationFilter] = useState('');
+  const [budgetMinFilter, setBudgetMinFilter] = useState('');
+  const [budgetMaxFilter, setBudgetMaxFilter] = useState('');
+  const [visitFromDate, setVisitFromDate] = useState('');
+  const [visitToDate, setVisitToDate] = useState('');
+  const [appliedLeadFilters, setAppliedLeadFilters] = useState({
+    status: 'All',
+    source: 'All',
+    project: '',
+    readiness: 'All',
+    propertyType: 'All',
+    preferredLocation: '',
+    budgetMin: '',
+    budgetMax: '',
+    visitFromDate: '',
+    visitToDate: '',
+  });
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
@@ -174,10 +194,47 @@ export default function LeadsPage() {
     const leadPhone = lead.phone || '';
     const leadStatus = lead.status || '';
     const leadSource = lead.source || '';
+    const leadProject = lead.project || '';
+    const leadReadiness = lead.requirement?.readiness || '';
+    const leadPropertyType = lead.requirement?.propertyType || '';
+    const leadPreferredLocation = lead.requirement?.preferredLocation || '';
+    const leadBudget = lead.requirement?.budget || '';
+    const leadVisitDate = lead.visitDate ? new Date(lead.visitDate) : null;
+
     const matchesSearch = leadName.includes(filter.toLowerCase()) || leadPhone.includes(filter);
-    const matchesStatus = statusFilter === 'All' || leadStatus === statusFilter;
-    const matchesSource = sourceFilter === 'All' || leadSource === sourceFilter;
-    return matchesSearch && matchesStatus && matchesSource;
+    const matchesStatus = appliedLeadFilters.status === 'All' || leadStatus === appliedLeadFilters.status;
+    const matchesSource = appliedLeadFilters.source === 'All' || leadSource === appliedLeadFilters.source;
+    const matchesProject = !appliedLeadFilters.project || leadProject.toLowerCase().includes(appliedLeadFilters.project.toLowerCase());
+    const matchesReadiness = appliedLeadFilters.readiness === 'All' || leadReadiness === appliedLeadFilters.readiness;
+    const matchesPropertyType = appliedLeadFilters.propertyType === 'All' || leadPropertyType === appliedLeadFilters.propertyType;
+    const matchesPreferredLocation = !appliedLeadFilters.preferredLocation || leadPreferredLocation.toLowerCase().includes(appliedLeadFilters.preferredLocation.toLowerCase());
+
+    const minBudget = appliedLeadFilters.budgetMin ? Number(appliedLeadFilters.budgetMin) : null;
+    const maxBudget = appliedLeadFilters.budgetMax ? Number(appliedLeadFilters.budgetMax) : null;
+    const leadBudgetValue = Number(String(leadBudget).replace(/[^0-9.]/g, '')) || null;
+    const matchesBudgetMin = minBudget === null || (leadBudgetValue !== null && leadBudgetValue >= minBudget);
+    const matchesBudgetMax = maxBudget === null || (leadBudgetValue !== null && leadBudgetValue <= maxBudget);
+
+    const fromDate = appliedLeadFilters.visitFromDate ? new Date(appliedLeadFilters.visitFromDate) : null;
+    const toDate = appliedLeadFilters.visitToDate ? new Date(appliedLeadFilters.visitToDate) : null;
+    if (fromDate) fromDate.setHours(0, 0, 0, 0);
+    if (toDate) toDate.setHours(23, 59, 59, 999);
+    const matchesVisitFrom = !fromDate || (leadVisitDate ? leadVisitDate >= fromDate : false);
+    const matchesVisitTo = !toDate || (leadVisitDate ? leadVisitDate <= toDate : false);
+
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesSource &&
+      matchesProject &&
+      matchesReadiness &&
+      matchesPropertyType &&
+      matchesPreferredLocation &&
+      matchesBudgetMin &&
+      matchesBudgetMax &&
+      matchesVisitFrom &&
+      matchesVisitTo
+    );
   });
 
   const columns = [
@@ -217,7 +274,7 @@ export default function LeadsPage() {
 
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex gap-4 no-print items-center">
           <div className="flex-1 relative"><Search className="absolute left-3 top-3 text-slate-400" size={20} /><input className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Search leads..." value={filter} onChange={e => setFilter(e.target.value)} /></div>
-          <button onClick={() => openDrawer('filter')} className={cn("flex items-center gap-2 px-4 py-2.5 border rounded-lg hover:bg-slate-50 font-medium text-slate-600", (statusFilter !== 'All' || sourceFilter !== 'All') && "bg-indigo-50 border-indigo-200 text-indigo-700")}><Filter size={18} /> Filters</button>
+          <button onClick={() => openDrawer('filter')} className={cn("flex items-center gap-2 px-4 py-2.5 border rounded-lg hover:bg-slate-50 font-medium text-slate-600", (appliedLeadFilters.status !== 'All' || appliedLeadFilters.source !== 'All') && "bg-indigo-50 border-indigo-200 text-indigo-700")}><Filter size={18} /> Filters</button>
         </div>
 
         <DataTable
@@ -294,7 +351,69 @@ export default function LeadsPage() {
           <div className="space-y-6">
             <div className="space-y-2"><label className="text-sm font-medium">Status</label><select className="w-full p-2 border rounded-lg" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}><option value="All">All Statuses</option><option value="New / Fresh Lead">New / Fresh Lead</option><option value="Contacted / Attempted to Contact">Contacted / Attempted to Contact</option><option value="Interested / Warm Lead">Interested / Warm Lead</option><option value="Not Interested">Not Interested</option><option value="No Response">No Response</option><option value="Follow-Up Scheduled">Follow-Up Scheduled</option><option value="Site Visit Scheduled">Site Visit Scheduled</option><option value="Booking in Progress">Booking in Progress</option><option value="Deal Success">Deal Success</option><option value="Deal Lost">Deal Lost</option><option value="Other">Other</option></select></div>
             <div className="space-y-2"><label className="text-sm font-medium">Source</label><select className="w-full p-2 border rounded-lg" value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}><option value="All">All Sources</option><option value="CRM">CRM</option><option value="FACEBOOK">Facebook</option><option value="INSTAGRAM">Instagram</option><option value="WHATSAPP">WhatsApp</option><option value="OTHER">Other</option></select></div>
-            <button onClick={() => { setStatusFilter('All'); setSourceFilter('All'); }} className="w-full py-2 text-sm text-slate-500 hover:text-slate-700 underline">Reset Filters</button>
+            <div className="space-y-2"><label className="text-sm font-medium">Project</label><input className="w-full p-2 border rounded-lg" value={projectFilter} onChange={e => setProjectFilter(e.target.value)} placeholder="Search project" /></div>
+            <div className="space-y-2"><label className="text-sm font-medium">Readiness</label><select className="w-full p-2 border rounded-lg" value={readinessFilter} onChange={e => setReadinessFilter(e.target.value)}><option value="All">All</option><option value="Hot Interest">Hot Interest</option><option value="Warm Interest">Warm Interest</option><option value="Cold Interest">Cold Interest</option></select></div>
+            <div className="space-y-2"><label className="text-sm font-medium">Property Type</label><select className="w-full p-2 border rounded-lg" value={propertyTypeFilter} onChange={e => setPropertyTypeFilter(e.target.value)}><option value="All">All</option><option value="1BHK">1BHK</option><option value="2BHK">2BHK</option><option value="3BHK">3BHK</option><option value="4BHK">4BHK</option><option value="Villa">Villa</option><option value="Plot">Plot</option><option value="Commercial">Commercial</option></select></div>
+            <div className="space-y-2"><label className="text-sm font-medium">Preferred Location</label><input className="w-full p-2 border rounded-lg" value={preferredLocationFilter} onChange={e => setPreferredLocationFilter(e.target.value)} placeholder="Search location" /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><label className="text-sm font-medium">Budget Min</label><input className="w-full p-2 border rounded-lg" value={budgetMinFilter} onChange={e => setBudgetMinFilter(e.target.value)} placeholder="Min" /></div>
+              <div className="space-y-2"><label className="text-sm font-medium">Budget Max</label><input className="w-full p-2 border rounded-lg" value={budgetMaxFilter} onChange={e => setBudgetMaxFilter(e.target.value)} placeholder="Max" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><label className="text-sm font-medium">Visit From</label><input type="date" className="w-full p-2 border rounded-lg" value={visitFromDate} onChange={e => setVisitFromDate(e.target.value)} /></div>
+              <div className="space-y-2"><label className="text-sm font-medium">Visit To</label><input type="date" className="w-full p-2 border rounded-lg" value={visitToDate} onChange={e => setVisitToDate(e.target.value)} /></div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setAppliedLeadFilters({
+                    status: statusFilter,
+                    source: sourceFilter,
+                    project: projectFilter,
+                    readiness: readinessFilter,
+                    propertyType: propertyTypeFilter,
+                    preferredLocation: preferredLocationFilter,
+                    budgetMin: budgetMinFilter,
+                    budgetMax: budgetMaxFilter,
+                    visitFromDate,
+                    visitToDate,
+                  });
+                  setIsDrawerOpen(false);
+                }}
+                className="flex-1 py-2 text-sm bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700"
+              >
+                Apply Filters
+              </button>
+              <button
+                onClick={() => {
+                  setStatusFilter('All');
+                  setSourceFilter('All');
+                  setProjectFilter('');
+                  setReadinessFilter('All');
+                  setPropertyTypeFilter('All');
+                  setPreferredLocationFilter('');
+                  setBudgetMinFilter('');
+                  setBudgetMaxFilter('');
+                  setVisitFromDate('');
+                  setVisitToDate('');
+                  setAppliedLeadFilters({
+                    status: 'All',
+                    source: 'All',
+                    project: '',
+                    readiness: 'All',
+                    propertyType: 'All',
+                    preferredLocation: '',
+                    budgetMin: '',
+                    budgetMax: '',
+                    visitFromDate: '',
+                    visitToDate: '',
+                  });
+                }}
+                className="flex-1 py-2 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50"
+              >
+                Reset
+              </button>
+            </div>
           </div>
         )}
         {drawerType === 'edit' && (
