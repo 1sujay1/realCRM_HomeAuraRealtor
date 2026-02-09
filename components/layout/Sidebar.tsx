@@ -46,8 +46,8 @@ export default function Sidebar({ user, isMobileOpen, setIsMobileOpen, isDesktop
             <div className={cn(!isDesktopCollapsed && "pt-6 mt-2")}>
               {!isDesktopCollapsed && <p className="px-4 text-sm font-bold text-slate-400 uppercase mb-3 tracking-wider">Admin</p>}
               <NavItem href="/users" icon={Lock} label="User Management" />
-              <NavItem href="/expenses" icon={DollarSign} label="Expenses" />
               <NavItem href="/expense-dashboard" icon={BarChart3} label="Expense Dashboard" />
+              <NavItem href="/expenses" icon={DollarSign} label="Expenses" />
             </div>
           )}
           <div className={cn(!isDesktopCollapsed && "pt-6 mt-2")}><NavItem href="/profile" icon={User} label="My Profile" /></div>

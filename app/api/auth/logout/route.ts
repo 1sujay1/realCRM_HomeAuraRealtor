@@ -1,16 +1,22 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import { Token } from "@/models/Token";
-import { cookies } from "next/headers";
+import { getToken } from "next-auth/jwt";
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
-    const token = cookies().get("token")?.value;
-    if (token) {
+    const sessionToken = await getToken({
+      req: req as any,
+      secret: process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET,
+    });
+
+    if (sessionToken?.accessToken) {
       await connectDB();
-      await Token.findOneAndUpdate({ token }, { isValid: false });
+      await Token.findOneAndUpdate(
+        { token: sessionToken.accessToken },
+        { isValid: false },
+      );
     }
-    cookies().delete("token");
 
     // NextAuth handles session cleanup via signOut() on client
     return NextResponse.json({ success: true });

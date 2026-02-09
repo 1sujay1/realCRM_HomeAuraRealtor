@@ -1,5 +1,4 @@
-import { cookies } from "next/headers";
-import { jwtVerify } from "jose";
+import { getToken } from "next-auth/jwt";
 import connectDB from "./db";
 import { Token } from "@/models/Token";
 import { checkPermission, Module, Action } from "./rbac";
@@ -10,24 +9,30 @@ export async function validateRequest(
   action: Action,
 ) {
   try {
-    const token = cookies().get("token")?.value;
-    if (!token) return null;
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret);
-    await connectDB();
-    const activeToken = await Token.findOne({
-      token: token,
-      isValid: true,
-      expiresAt: { $gt: new Date() },
+    const token = await getToken({
+      req: req as any,
+      secret: process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET,
     });
-    if (!activeToken) return null;
-    if (!checkPermission(payload.role as string, module, action))
+
+    if (!token) return null;
+
+    if (token.accessToken) {
+      await connectDB();
+      const activeToken = await Token.findOne({
+        token: token.accessToken,
+        isValid: true,
+        expiresAt: { $gt: new Date() },
+      });
+      if (!activeToken) return null;
+    }
+
+    if (!checkPermission(token.role as string, module, action))
       return "forbidden";
-    // Normalize payload to include `_id` to keep compatibility with existing handlers
+
+    // Normalize token to include `_id` for compatibility with existing handlers
     const normalized: any = {
-      ...(payload as any),
-      _id:
-        (payload as any).userId || (payload as any)._id || (payload as any).sub,
+      ...(token as any),
+      _id: (token as any).id || (token as any).userId || (token as any).sub,
     };
     return normalized;
   } catch (error) {

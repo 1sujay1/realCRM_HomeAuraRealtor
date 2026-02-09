@@ -8,7 +8,7 @@ export const RBAC_CONFIG = {
     agent: { create: true, read: true, update: true, delete: false },
   },
   Expenses: {
-    admin: { create: true, read: true, update: true, delete: true },
+    admin: { create: true, read: true, update: true, delete: false },
     agent: { create: false, read: false, update: false, delete: false },
   },
   Users: {
