@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 import { promises as fs } from "fs";
 import path from "path";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const getUploadsDir = () => {
+  const envDir = process.env.UPLOADS_DIR;
+  return envDir ? path.resolve(envDir) : path.join(process.cwd(), "uploads");
+};
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -13,7 +21,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
+    const uploadsDir = getUploadsDir();
     await fs.mkdir(uploadsDir, { recursive: true });
 
     // data is expected to be a data URL like: data:application/pdf;base64,....

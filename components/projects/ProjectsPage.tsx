@@ -6,15 +6,17 @@ import { useSession } from 'next-auth/react';
 import { Search, Plus, MapPin, Tag, FileText, Filter, Building, Upload } from 'lucide-react';
 import { Fragment } from 'react';
 import { X } from 'lucide-react';
+import Modal from '@/components/ui/Modal';
 
 interface Project {
   _id: string;
   name: string;
   builder: string;
-  location?: string;
   projectType?: string;
   propertyCity?: string;
   locality?: string;
+  address?: string;
+  pincode?: string;
   offerPrice?: string;
   startingPrice?: string;
   type?: string;
@@ -28,6 +30,9 @@ interface Project {
   description?: string;
   brochureUrl?: string;
   pdfUrl?: string;
+  reraNumber?: string;
+  googleMapLink?: string;
+  amenities?: string[];
 }
 
 export default function ProjectsPage() {
@@ -41,6 +46,8 @@ export default function ProjectsPage() {
   const [selectedBrochure, setSelectedBrochure] = useState<{ projectName: string; url: string } | null>(null);
   const [selectedProjectView, setSelectedProjectView] = useState<Project | null>(null);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
 
   // Fetch projects from API
@@ -67,7 +74,7 @@ export default function ProjectsPage() {
     fetchProjects();
   }, [projectZoneFilter]);
   // Handle project creation
-  const handleAddProject = async (projectData: Omit<Project, '_id' | 'status'>) => {
+  const handleAddProject = async (projectData: Omit<Project, '_id'>) => {
     try {
       const response = await fetch('/api/projects', {
         method: 'POST',
@@ -76,7 +83,7 @@ export default function ProjectsPage() {
         },
         body: JSON.stringify({
           ...projectData,
-          status: 'New Launch' as const,
+          status: projectData.status || ('New Launch' as const),
         }),
       });
       if (!response.ok) {
@@ -116,20 +123,25 @@ export default function ProjectsPage() {
     }
   };
   // Handle project deletion
-  const handleDeleteProject = async (projectId: string) => {
-    if (!window.confirm('Are you sure you want to delete this project?')) return;
+  const handleDeleteProject = async () => {
+    if (!projectToDelete) return;
     try {
-      const response = await fetch(`/api/projects/${projectId}`, {
+      setIsDeleting(true);
+      setError(null);
+      const response = await fetch(`/api/projects?id=${projectToDelete._id}`, {
         method: 'DELETE',
       });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to delete project');
       }
+      setProjectToDelete(null);
       await fetchProjects(); // Refresh the projects list
     } catch (err) {
       console.error('Error deleting project:', err);
       setError(err instanceof Error ? err.message : 'Failed to delete project');
+    } finally {
+      setIsDeleting(false);
     }
   };
   // Handle file upload
@@ -169,11 +181,13 @@ export default function ProjectsPage() {
     // Add null checks for project properties
     const projectName = project.name?.toLowerCase() || '';
     const projectLocation = project.locality?.toLowerCase() || '';
+    const projectCity = project.propertyCity?.toLowerCase() || '';
     const projectBuilder = project.builder?.toLowerCase() || '';
 
     return (
       (projectName.includes(searchTerm) ||
         projectLocation.includes(searchTerm) ||
+        projectCity.includes(searchTerm) ||
         projectBuilder.includes(searchTerm)) &&
       matchesZone
     );
@@ -276,7 +290,7 @@ export default function ProjectsPage() {
                 {project.builder}
               </p>
               <p className="text-xs text-slate-400 flex items-center gap-1 mb-3">
-                <MapPin size={12} /> {project.locality}
+                <MapPin size={12} /> {project.locality || project.propertyCity || 'N/A'}
               </p>
 
               <div className="mt-auto space-y-3">
@@ -295,24 +309,6 @@ export default function ProjectsPage() {
                   >
                     View Details
                   </button>
-                  <div className="flex gap-2">
-                    {session?.user?.permissions?.canEditProjects && (
-                      <button
-                        onClick={() => setEditingProject(project)}
-                        className="flex-1 border border-amber-300 text-amber-700 hover:bg-amber-50 py-2 rounded-lg text-sm font-semibold transition-colors"
-                      >
-                        Edit
-                      </button>
-                    )}
-                    {session?.user?.permissions?.canDeleteProjects && (
-                      <button
-                        onClick={() => handleDeleteProject(project._id)}
-                        className="flex-1 border border-red-300 text-red-700 hover:bg-red-50 py-2 rounded-lg text-sm font-semibold transition-colors"
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </div>
                   <button
                     onClick={() => {
                       const brochureUrl = project.pdfUrl || project.brochureUrl;
@@ -376,6 +372,16 @@ export default function ProjectsPage() {
         <ProjectDetailsModal
           project={selectedProjectView}
           onClose={() => setSelectedProjectView(null)}
+          onEdit={(project) => {
+            setSelectedProjectView(null);
+            setEditingProject(project);
+          }}
+          onDelete={(project) => {
+            setSelectedProjectView(null);
+            setProjectToDelete(project);
+          }}
+          canEdit={!!session?.user?.permissions?.canEditProjects}
+          canDelete={!!session?.user?.permissions?.canDeleteProjects}
         />
       )}
 
@@ -387,6 +393,39 @@ export default function ProjectsPage() {
           onClose={() => setSelectedBrochure(null)}
         />
       )}
+
+      <Modal
+        isOpen={!!projectToDelete}
+        onClose={() => !isDeleting && setProjectToDelete(null)}
+        title="Delete Project"
+        type="danger"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Are you sure you want to delete{' '}
+            <span className="font-semibold text-slate-800">{projectToDelete?.name}</span>?
+            This action cannot be undone.
+          </p>
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setProjectToDelete(null)}
+              disabled={isDeleting}
+              className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteProject}
+              disabled={isDeleting}
+              className="px-4 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 disabled:opacity-60"
+            >
+              {isDeleting ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -411,6 +450,23 @@ const AddProjectModal = ({
   const [uploadedPdfUrl, setUploadedPdfUrl] = useState<string | null>(initialProject?.pdfUrl || initialProject?.brochureUrl || null);
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfPreview, setPdfPreview] = useState<string | null>(initialProject?.pdfUrl || initialProject?.brochureUrl || null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const initialImage =
+      initialProject?.image ||
+      initialProject?.thumbnail ||
+      initialProject?.propertyImages?.[0] ||
+      null;
+    const initialPdf =
+      initialProject?.pdfUrl || initialProject?.brochureUrl || null;
+
+    setUploadedImageUrl(initialImage);
+    setUploadedPdfUrl(initialPdf);
+    setPdfPreview(initialPdf);
+    setPdfFile(null);
+  }, [initialProject, isOpen]);
+
   if (!isOpen) return null;
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -458,16 +514,31 @@ const AddProjectModal = ({
       const projectData: any = {
         name: formData.get("name") as string,
         builder: formData.get("builder") as string,
-        locality: formData.get("location") as string,
+        projectType: (formData.get("projectType") as string) || undefined,
+        status: (formData.get("status") as string) || undefined,
+        propertyCity: formData.get("propertyCity") as string,
+        locality: formData.get("locality") as string,
+        address: formData.get("address") as string,
+        pincode: formData.get("pincode") as string,
         zone: formData.get("zone") as string,
-        startingPrice: formData.get("price") as string,
-        configuration: formData.get("type") as string,
-        offerPrice: formData.get("offer") as string || undefined,
-        image: uploadedImageUrl || "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&q=80&w=400",
+        configuration: formData.get("configuration") as string,
+        startingPrice: formData.get("startingPrice") as string,
+        offerPrice: (formData.get("offerPrice") as string) || undefined,
+        reraNumber: (formData.get("reraNumber") as string) || undefined,
+        googleMapLink: (formData.get("googleMapLink") as string) || undefined,
+        amenities: (() => {
+          const value = (formData.get("amenities") as string) || '';
+          return value
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
+        })(),
+        ...(uploadedImageUrl ? { image: uploadedImageUrl, thumbnail: uploadedImageUrl } : {}),
       };
       // Use uploaded PDF URL if available
       if (uploadedPdfUrl) {
         projectData.pdfUrl = uploadedPdfUrl;
+        projectData.brochureUrl = uploadedPdfUrl;
       }
       const success = await onAdd(projectData);
       if (success) {
@@ -542,14 +613,31 @@ const AddProjectModal = ({
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Zone <span className="text-red-500">*</span>
+                Project Type <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="projectType"
+                defaultValue={initialProject?.projectType || 'Apartment'}
+                className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                disabled={isSubmitting}
+                required
+              >
+                <option value="Apartment">Apartment</option>
+                <option value="Villa">Villa</option>
+                <option value="Plot">Plot</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Zone
               </label>
               <select
                 name="zone"
                 defaultValue={initialProject?.zone || 'Central'}
                 className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
                 disabled={isSubmitting}
-                required
               >
                 <option value="Central">Central</option>
                 <option value="West">West</option>
@@ -558,44 +646,138 @@ const AddProjectModal = ({
                 <option value="North">North</option>
               </select>
             </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Status
+              </label>
+              <select
+                name="status"
+                defaultValue={initialProject?.status || 'New Launch'}
+                className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                disabled={isSubmitting}
+              >
+                <option value="Pre-Launch">Pre-Launch</option>
+                <option value="New Launch">New Launch</option>
+                <option value="Under Construction">Under Construction</option>
+                <option value="Ready To Move">Ready To Move</option>
+              </select>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Location <span className="text-red-500">*</span>
+                City <span className="text-red-500">*</span>
               </label>
               <input
-                name="location"
-                defaultValue={initialProject?.locality || ''}
+                name="propertyCity"
+                defaultValue={initialProject?.propertyCity || ''}
                 required
                 className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="e.g. Andheri West"
+                placeholder="e.g. Mumbai"
                 disabled={isSubmitting}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
+                Locality
+              </label>
+              <input
+                name="locality"
+                defaultValue={initialProject?.locality || ''}
+                className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="e.g. Andheri West"
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Address
+              </label>
+              <input
+                name="address"
+                defaultValue={initialProject?.address || ''}
+                className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="Street, area, landmark"
+                disabled={isSubmitting}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Pincode
+              </label>
+              <input
+                name="pincode"
+                defaultValue={initialProject?.pincode || ''}
+                className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="e.g. 400001"
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Configuration
               </label>
               <input
-                name="type"
-                defaultValue={initialProject?.projectType || ''}
+                name="configuration"
+                defaultValue={initialProject?.configuration || ''}
                 className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
                 placeholder="e.g. 2 & 3 BHK"
+                disabled={isSubmitting}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Starting Price <span className="text-red-500">*</span>
+              </label>
+              <input
+                name="startingPrice"
+                defaultValue={initialProject?.startingPrice as any || ''}
+                required
+                className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="e.g. 1.5 Cr - 2.2 Cr"
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                RERA Number
+              </label>
+              <input
+                name="reraNumber"
+                defaultValue={initialProject?.reraNumber || ''}
+                className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="e.g. P123456789"
+                disabled={isSubmitting}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Google Map Link
+              </label>
+              <input
+                name="googleMapLink"
+                defaultValue={initialProject?.googleMapLink || ''}
+                className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
+                placeholder="https://maps.google.com/..."
                 disabled={isSubmitting}
               />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Price Range <span className="text-red-500">*</span>
+              Amenities (comma separated)
             </label>
             <input
-              name="price"
-              defaultValue={initialProject?.startingPrice as any || ''}
-              required
+              name="amenities"
+              defaultValue={(initialProject?.amenities || []).join(', ')}
               className="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="e.g. 1.5 Cr - 2.2 Cr"
+              placeholder="e.g. Gym, Pool, Club House"
               disabled={isSubmitting}
             />
           </div>
@@ -604,7 +786,7 @@ const AddProjectModal = ({
               <Tag size={16} /> Project Offer / Deal
             </label>
             <input
-              name="offer"
+              name="offerPrice"
               defaultValue={initialProject?.offerPrice || ''}
               className="w-full px-4 py-2 rounded-lg border border-yellow-200 focus:ring-2 focus:ring-yellow-500 outline-none bg-white"
               placeholder="e.g. No GST, Free Car Parking"
@@ -765,7 +947,21 @@ const BrochurePreviewModal = ({ projectName, brochureUrl, onClose }: { projectNa
   );
 };
 
-const ProjectDetailsModal = ({ project, onClose }: { project: Project; onClose: () => void }) => {
+const ProjectDetailsModal = ({
+  project,
+  onClose,
+  onEdit,
+  onDelete,
+  canEdit,
+  canDelete,
+}: {
+  project: Project;
+  onClose: () => void;
+  onEdit: (project: Project) => void;
+  onDelete: (project: Project) => void;
+  canEdit: boolean;
+  canDelete: boolean;
+}) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
@@ -807,6 +1003,14 @@ const ProjectDetailsModal = ({ project, onClose }: { project: Project; onClose: 
               <p className="text-xs text-slate-500 font-semibold uppercase">Configuration</p>
               <p className="text-sm font-semibold text-slate-800">{project.configuration || 'N/A'}</p>
             </div>
+            <div>
+              <p className="text-xs text-slate-500 font-semibold uppercase">Locality</p>
+              <p className="text-sm font-semibold text-slate-800">{project.locality || 'N/A'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 font-semibold uppercase">Pincode</p>
+              <p className="text-sm font-semibold text-slate-800">{project.pincode || 'N/A'}</p>
+            </div>
           </div>
 
           {/* Price and Status */}
@@ -844,6 +1048,31 @@ const ProjectDetailsModal = ({ project, onClose }: { project: Project; onClose: 
               {project.locality && (
                 <p><span className="font-semibold">Locality:</span> {project.locality}</p>
               )}
+              {project.address && (
+                <p><span className="font-semibold">Address:</span> {project.address}</p>
+              )}
+              {project.pincode && (
+                <p><span className="font-semibold">Pincode:</span> {project.pincode}</p>
+              )}
+              {project.reraNumber && (
+                <p><span className="font-semibold">RERA Number:</span> {project.reraNumber}</p>
+              )}
+              {project.googleMapLink && (
+                <p>
+                  <span className="font-semibold">Google Map:</span>{' '}
+                  <a
+                    href={project.googleMapLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    Open Map
+                  </a>
+                </p>
+              )}
+              {project.amenities && project.amenities.length > 0 && (
+                <p><span className="font-semibold">Amenities:</span> {project.amenities.join(', ')}</p>
+              )}
               {project.description && (
                 <p><span className="font-semibold">Description:</span> {project.description}</p>
               )}
@@ -851,7 +1080,23 @@ const ProjectDetailsModal = ({ project, onClose }: { project: Project; onClose: 
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-slate-100 flex justify-end">
+        <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-2">
+          {canEdit && (
+            <button
+              onClick={() => onEdit(project)}
+              className="px-4 py-2 border border-amber-300 text-amber-700 rounded-lg font-semibold hover:bg-amber-50 transition-colors"
+            >
+              Edit
+            </button>
+          )}
+          {canDelete && (
+            <button
+              onClick={() => onDelete(project)}
+              className="px-4 py-2 border border-red-300 text-red-700 rounded-lg font-semibold hover:bg-red-50 transition-colors"
+            >
+              Delete
+            </button>
+          )}
           <button
             onClick={onClose}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"

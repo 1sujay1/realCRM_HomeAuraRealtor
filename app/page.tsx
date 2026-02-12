@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { signIn, useSession } from 'next-auth/react';
-import { Building } from 'lucide-react';
+import { Building, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { APP_NAME } from '@/lib/config';
 import Spinner from '@/components/ui/Spinner';
@@ -11,6 +11,7 @@ export default function AuthPage() {
   const [view, setView] = useState<'login' | 'register' | 'forgot'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -133,14 +134,24 @@ export default function AuthPage() {
           {view !== 'forgot' && (
             <div className="space-y-1">
               <label className="text-xs font-semibold text-slate-500 uppercase">Password</label>
-              <input
-                className="w-full p-3.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <div className="relative">
+                <input
+                  className="w-full p-3.5 pr-12 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
           )}
           <button

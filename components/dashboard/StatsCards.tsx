@@ -6,7 +6,7 @@ interface StatsCardsProps {
     stats: {
         leads: number;
         siteVisitsScheduled: number;
-        projects: number;
+        freshLeads: number;
         bookedLeads: number;
     };
     loading: boolean;
@@ -47,12 +47,12 @@ const StatsCards = ({ stats, loading }: StatsCardsProps) => {
                 href="/site-visits"
             />
             <Card
-                title="Total Projects"
-                value={stats.projects}
+                title="Fresh / New Leads"
+                value={stats.freshLeads}
                 icon={BarChart3}
                 color="bg-violet-500"
-                subtitle="Active projects"
-                href="/projects"
+                subtitle="New + Fresh Lead status"
+                href="/leads"
             />
             <Card
                 title="Booked Leads"

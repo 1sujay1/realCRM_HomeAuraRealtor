@@ -3,6 +3,45 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Project from "@/models/Project";
 import { validateRequest } from "@/lib/security";
+import { promises as fs } from "fs";
+import path from "path";
+
+const getUploadsDir = () => {
+  const envDir = process.env.UPLOADS_DIR;
+  return envDir ? path.resolve(envDir) : path.join(process.cwd(), "uploads");
+};
+
+const getLocalUploadPath = (fileUrl?: string) => {
+  if (!fileUrl) return null;
+  const uploadsDir = getUploadsDir();
+  if (fileUrl.startsWith("/uploads/")) {
+    return path.join(uploadsDir, fileUrl.replace("/uploads/", ""));
+  }
+  try {
+    const parsed = new URL(fileUrl);
+    if (parsed.pathname.startsWith("/uploads/")) {
+      return path.join(uploadsDir, parsed.pathname.replace("/uploads/", ""));
+    }
+  } catch {
+    // not a URL, ignore
+  }
+  return null;
+};
+
+const collectProjectFiles = (project: any) => {
+  const files = new Set<string>();
+  const addFile = (url?: string) => {
+    const localPath = getLocalUploadPath(url);
+    if (localPath) files.add(localPath);
+  };
+
+  addFile(project.thumbnail);
+  addFile(project.brochureUrl);
+  if (Array.isArray(project.propertyImages)) {
+    project.propertyImages.forEach((url: string) => addFile(url));
+  }
+  return Array.from(files);
+};
 
 export async function GET(req: Request) {
   const user: any = await validateRequest(req, "Projects", "read");
@@ -101,6 +140,22 @@ export async function PUT(req: Request) {
     const body = await req.json();
     const { _id, ...updateData } = body;
 
+    // Normalize media fields to match schema
+    const imageUrl = updateData.image || updateData.thumbnail;
+    if (imageUrl) {
+      updateData.thumbnail = imageUrl;
+      updateData.propertyImages = Array.isArray(updateData.propertyImages)
+        ? updateData.propertyImages
+        : [imageUrl];
+      delete updateData.image;
+    }
+
+    const brochureUrl = updateData.pdfUrl || updateData.brochureUrl;
+    if (brochureUrl) {
+      updateData.brochureUrl = brochureUrl;
+      delete updateData.pdfUrl;
+    }
+
     await connectDB();
 
     const updatedProject = await Project.findByIdAndUpdate(
@@ -132,7 +187,9 @@ export async function DELETE(req: Request) {
   await connectDB();
 
   try {
+    let projectsToDelete: any[] = [];
     if (ids) {
+      projectsToDelete = await Project.find({ _id: { $in: ids.split(",") } });
       // Soft delete multiple projects
       await Project.updateMany(
         { _id: { $in: ids.split(",") } },
@@ -144,6 +201,8 @@ export async function DELETE(req: Request) {
         },
       );
     } else if (id) {
+      const project = await Project.findById(id);
+      if (project) projectsToDelete = [project];
       // Soft delete single project
       await Project.findByIdAndUpdate(id, {
         isDeleted: true,
@@ -152,6 +211,19 @@ export async function DELETE(req: Request) {
         deletedByName: user.name,
       });
     }
+
+    // Attempt to delete local uploaded files (best-effort)
+    const filesToDelete = projectsToDelete.flatMap(collectProjectFiles);
+    await Promise.all(
+      filesToDelete.map(async (filePath) => {
+        try {
+          await fs.unlink(filePath);
+        } catch {
+          // ignore missing files or errors
+        }
+      }),
+    );
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting project:", error);

@@ -10,7 +10,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState({
     leads: 0,
     siteVisitsScheduled: 0,
-    projects: 0,
+    freshLeads: 0,
     bookedLeads: 0
   });
   const [loading, setLoading] = useState(true);
@@ -19,13 +19,13 @@ export default function DashboardPage() {
     Promise.all([
       fetch('/api/leads').then(res => res.ok ? res.json() : []),
       fetch('/api/site-visits?status=Scheduled').then(res => res.ok ? res.json() : []),
-      fetch('/api/projects').then(res => res.ok ? res.json() : []),
+      fetch('/api/leads?status=New%20%2F%20Fresh%20Lead').then(res => res.ok ? res.json() : []),
       fetch('/api/leads?status=Deal%20Success').then(res => res.ok ? res.json() : [])
-    ]).then(([leads, scheduledSiteVisits, projects, bookedLeads]) => {
+    ]).then(([leads, scheduledSiteVisits, freshLeads, bookedLeads]) => {
       setStats({
         leads: leads.length,
         siteVisitsScheduled: scheduledSiteVisits.length,
-        projects: projects.length,
+        freshLeads: freshLeads.length,
         bookedLeads: bookedLeads.length
       });
     }).finally(() => setLoading(false));
