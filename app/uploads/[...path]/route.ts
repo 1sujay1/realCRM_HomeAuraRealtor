@@ -6,8 +6,14 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const getUploadsDir = () => {
+  // Use UPLOADS_DIR env var if set (production)
+  // Otherwise use public/uploads for local development
   const envDir = process.env.UPLOADS_DIR;
-  return envDir ? path.resolve(envDir) : path.join(process.cwd(), "uploads");
+  if (envDir) {
+    return path.resolve(envDir);
+  }
+  // Local: use public/uploads (ignored by git)
+  return path.join(process.cwd(), "public", "uploads");
 };
 
 const getMimeType = (filePath: string) => {
@@ -40,11 +46,15 @@ export async function GET(
       return NextResponse.json({ error: "Missing file path" }, { status: 400 });
     }
 
-    const uploadsDir = getUploadsDir();
+    const uploadsDir = path.resolve(getUploadsDir());
     const unsafePath = path.join(uploadsDir, ...params.path);
     const resolved = path.resolve(unsafePath);
 
-    if (!resolved.startsWith(uploadsDir)) {
+    // Normalize paths for Windows compatibility
+    const normalizedUploadsDir = uploadsDir.toLowerCase().replace(/\\/g, '/');
+    const normalizedResolved = resolved.toLowerCase().replace(/\\/g, '/');
+
+    if (!normalizedResolved.startsWith(normalizedUploadsDir)) {
       return NextResponse.json({ error: "Invalid file path" }, { status: 400 });
     }
 

@@ -1,7 +1,10 @@
 {
-  "name": "brokerflow-pro",
+  "name": "homeaurarealtor",
   "version": "1.0.0",
   "private": true,
+  "author": {
+    "name": "Sujay Kumar N"
+  },
   "scripts": {
     "dev": "next dev -p 3015",
     "build": "next build",

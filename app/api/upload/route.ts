@@ -6,8 +6,14 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const getUploadsDir = () => {
+  // Use UPLOADS_DIR env var if set (production)
+  // Otherwise use public/uploads for local development
   const envDir = process.env.UPLOADS_DIR;
-  return envDir ? path.resolve(envDir) : path.join(process.cwd(), "uploads");
+  if (envDir) {
+    return path.resolve(envDir);
+  }
+  // Local: use public/uploads (ignored by git)
+  return path.join(process.cwd(), "public", "uploads");
 };
 
 export async function POST(req: Request) {
