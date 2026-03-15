@@ -67,7 +67,8 @@ export default function LeadsPage() {
       readiness: 'Warm Interest'
     },
     notes: '',
-    visitDate: ''
+    visitDate: '',
+    isJunk: false,
   });
 
   const fetchLeads = () => {
@@ -113,7 +114,8 @@ export default function LeadsPage() {
         readiness: 'Warm Interest'
       },
       notes: lead.notes || '',
-      visitDate: lead.visitDate ? new Date(lead.visitDate).toISOString().split('T')[0] : ''
+      visitDate: lead.visitDate ? new Date(lead.visitDate).toISOString().split('T')[0] : '',
+      isJunk: lead.isJunk || false,
     });
     setIsDrawerOpen(true);
   };
@@ -268,7 +270,7 @@ export default function LeadsPage() {
                 </div>
               )}
             </div>
-            <button onClick={() => { setSelectedLead(null); setFormData({ name: '', phone: '', email: '', secondaryPhone: '', status: 'New / Fresh Lead', source: 'CRM', project: '', requirement: { budget: '', propertyType: '', preferredLocation: '', readiness: 'Warm Interest' }, notes: '', visitDate: '' }); openDrawer('edit'); }} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-sm"><Plus size={18} /> <span className="hidden sm:inline">New Lead</span></button>
+            <button onClick={() => { setSelectedLead(null); setFormData({ name: '', phone: '', email: '', secondaryPhone: '', status: 'New / Fresh Lead', source: 'CRM', project: '', requirement: { budget: '', propertyType: '', preferredLocation: '', readiness: 'Warm Interest' }, notes: '', visitDate: '', isJunk: false }); openDrawer('edit'); }} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-sm"><Plus size={18} /> <span className="hidden sm:inline">New Lead</span></button>
           </div>
         </div>
 
@@ -423,6 +425,10 @@ export default function LeadsPage() {
             <div className="space-y-1"><label className="text-sm font-medium">Secondary Phone</label><input className="w-full p-2.5 border rounded-lg" value={formData.secondaryPhone} onChange={e => setFormData({ ...formData, secondaryPhone: e.target.value })} /></div>
             <div className="space-y-1"><label className="text-sm font-medium">Email</label><input type="email" className="w-full p-2.5 border rounded-lg" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} /></div>
             <div className="space-y-1"><label className="text-sm font-medium">Status</label><select className="w-full p-2.5 border rounded-lg" value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })}><option value="New / Fresh Lead">New / Fresh Lead</option><option value="Contacted / Attempted to Contact">Contacted / Attempted to Contact</option><option value="Interested / Warm Lead">Interested / Warm Lead</option><option value="Not Interested">Not Interested</option><option value="No Response">No Response</option><option value="Follow-Up Scheduled">Follow-Up Scheduled</option><option value="Site Visit Scheduled">Site Visit Scheduled</option><option value="Booking in Progress">Booking in Progress</option><option value="Deal Success">Deal Success</option><option value="Deal Lost">Deal Lost</option><option value="Other">Other</option></select></div>
+            <div className="flex items-center gap-2">
+              <input id="isJunk" name="isJunk" type="checkbox" checked={formData.isJunk} onChange={e => setFormData({ ...formData, isJunk: e.target.checked })} className="h-4 w-4 text-indigo-600 border-gray-300 rounded" />
+              <label htmlFor="isJunk" className="text-sm text-slate-700">Mark as Junk Lead</label>
+            </div>
             <div className="space-y-1"><label className="text-sm font-medium">Source</label><select className="w-full p-2.5 border rounded-lg" value={formData.source} onChange={e => setFormData({ ...formData, source: e.target.value })}><option value="CRM">CRM</option><option value="FACEBOOK">Facebook</option><option value="INSTAGRAM">Instagram</option><option value="WHATSAPP">WhatsApp</option><option value="OTHER">Other</option></select></div>
             {/* <div className="space-y-1"><label className="text-sm font-medium">Message</label><textarea className="w-full p-2.5 border rounded-lg h-20" value={formData.message} onChange={e => setFormData({ ...formData, message: e.target.value })} /></div> */}
             <div className="space-y-1"><label className="text-sm font-medium">Project</label><input className="w-full p-2.5 border rounded-lg" value={formData.project} onChange={e => setFormData({ ...formData, project: e.target.value })} /></div>

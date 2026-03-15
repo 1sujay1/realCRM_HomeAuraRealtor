@@ -69,6 +69,10 @@ const LeadSchema = new Schema(
     // 🔹 Notes & Follow-up
     notes: String,
     visitDate: Date,
+
+    // 🔹 Junk Lead
+    isJunk: { type: Boolean, default: false, index: true },
+
     isDeleted: { type: Boolean, default: false, index: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     createdByName: String,
